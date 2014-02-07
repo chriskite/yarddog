@@ -1,0 +1,28 @@
+GEM
+  remote: https://rubygems.org/
+  specs:
+    archive-tar-minitar (0.5.2)
+    blankslate (3.1.2)
+    docker-api (1.7.6)
+      archive-tar-minitar
+      excon (>= 0.28)
+      json
+    excon (0.31.0)
+    jimson (0.10.0)
+      blankslate (~> 3.1.2)
+      multi_json (~> 1.7.6)
+      rack (~> 1.4.5)
+      rest-client (~> 1.6.7)
+    json (1.8.1)
+    mime-types (2.1)
+    multi_json (1.7.9)
+    rack (1.4.5)
+    rest-client (1.6.7)
+      mime-types (>= 1.16)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  docker-api
+  jimson

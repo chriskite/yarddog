@@ -1,0 +1,6 @@
+source 'https://rubygems.org'
+
+gem 'jimson'
+gem 'fog'
+gem 'pony'
+gem 'redis'
