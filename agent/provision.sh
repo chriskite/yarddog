@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# update the ubuntu system
-apt-get update && apt-get -y dist-upgrade && apt-get install -y curl git
+# install curl and git
+apt-get install -y curl git
 
 # install rvm and ruby
 \curl -sSL https://get.rvm.io | bash -s stable
