@@ -4,8 +4,16 @@ gem 'rails', '4.1.1'
 
 gem 'rails-api'
 
-gem 'spring', :group => :development
-gem 'rspec-rails', :group => :development
+gem 'jbuilder'
+
+group :development, :test do
+  gem 'spring'
+  gem 'rspec-rails'
+  gem 'factory_girl_rails', '4.4.0'
+  gem 'fakeweb'
+  gem 'timecop'
+  gem 'database_cleaner'
+end
 
 gem 'pg'
 

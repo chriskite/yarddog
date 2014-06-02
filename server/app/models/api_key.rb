@@ -1,13 +1,12 @@
 class ApiKey < ActiveRecord::Base
   belongs_to :user
-  attr_accessible :user, :key
-  before_create :generate_key
+  before_create :generate_token
 
   private
 
-  def generate_key
+  def generate_token
     begin
-      self.key = SecureRandom.hex.to_s
-    end while self.class.exists?(key: key)
+      self.token = SecureRandom.hex.to_s
+    end while self.class.exists?(token: token)
   end
 end
