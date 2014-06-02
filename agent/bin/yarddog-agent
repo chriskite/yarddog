@@ -1,0 +1,71 @@
+#!/usr/bin/env ruby
+
+## libraries
+require 'commander/import'
+require 'pathname'
+require 'highline/import'
+require 'rest_client'
+DEFAULT_URL = 'http://localhost:3000'
+unless ENV["YARDDOG_URL"]
+    ENV["YARDDOG_URL"] = DEFAULT_URL
+end
+
+## commander config
+program :version, '0'
+program :description, 'utility to manage docker containers in virtual servers'
+
+command :run do |c|
+    c.syntax = 'yd run [-d directory/Dockerfile] [-i image] [-u url] <command [args...]>'
+    c.description = 'Build a docker image and run <command> on the cluster.'
+    c.option '-d directory/Dockerfile', String, 'specify the Dockerfile or directory with a Dockerfile at its root.'
+    c.option '-i imageID', Integer, 'specify a pre-built image ID to upload'
+    c.option '-u url', String, 'specify the URL of the yarddog server'
+    c.action do |args, options|
+        options.default d: Dir.getwd # the current directory
+        options.default u: ENV["YARDDOG_URL"]
+        path = Pathname.new(options.d)
+        resolve_dockerfile path do |path|
+            warn 'The container will be started without a command.' if args.empty?
+            warn "Using the default URL #{DEFAULT_URL}." if options.u == DEFAULT_URL
+            site = RestClient::Resource.new(options.u)
+            site['/run'].post File.new(path), content_type: 'text/plain'
+        end
+    end
+end
+
+command :schedule do |c|
+    c.syntax = 'yd schedule <timespec> [-d directory/Dockerfile] [-i image] [-u url] <command [args...]>'
+    c.description = 'Schedule a run command to happen in the future or periodically.'
+    c.option '-d directory/Dockerfile', String, 'specify the Dockerfile or directory with a Dockerfile at its root.'
+    c.option '-i imageID', Integer, 'specify a pre-built image ID to upload'
+    c.option '-u url', String, 'specify the URL of the yarddog server'
+    c.action do |args, options|
+        options.default d: Dir.getwd # the current directory
+        path = Pathname.new(options.d)
+        resolve_dockerfile path do
+            #TODO -- right now it just prints example commands it would run
+            puts "docker build #{path}"
+            warn 'The container will be started without a command.' if args.empty?
+            puts "crontab #{args}"
+        end
+    end
+end
+
+command :status do |c|
+    c.syntax = 'yd status <jobid>'
+    c.description = 'Get the status of a command running now or scheduled later by its <id>.'
+    c.action do |args, options|
+
+    end
+end
+## end commander config
+
+## helper commands
+def resolve_dockerfile path
+    path += 'Dockerfile' if path.directory?
+    if path.exist?
+        yield(path)
+    else
+        fail "No Dockerfile found. If it's not in this directory, be sure to specify where it is with the -d option"
+    end
+end
