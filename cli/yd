@@ -1,0 +1,127 @@
+#!/usr/bin/env ruby
+
+## libraries
+# stdlib
+require 'pathname'
+require 'json'
+require 'tmpdir'
+# external
+require 'commander/import'
+require 'highline/import'
+require 'rest_client'
+require 'base64'
+
+DEFAULT_URL = 'http://localhost:3000'
+
+## helper methods
+def resolve_url options
+    using_default = false
+    if ENV["YARDDOG_URL"]
+        config_url = ENV["YARDDOG_URL"]
+    elsif File.exists?("#{options.dir}/.yarddog.conf")
+        config_url = File.new("#{options.dir}/.yarddog.conf").read.strip!
+    elsif File.exists?("#{ENV['HOME']}/.yarddog.conf")
+        config_url = File.new("#{ENV['HOME']}/.yarddog.conf").read.strip!
+    else
+        config_url = DEFAULT_URL
+        using_default = true
+    end
+
+    if using_default && options.url.nil?
+        warn "Using the default URL #{DEFAULT_URL}." 
+        options.url = DEFAULT_URL
+    else
+        options.default url: config_url
+    end
+end
+
+def resolve_directory path
+    if path.directory?
+        if (path + 'Dockerfile').exist?
+            yield(path)
+        else
+            fail "The directory specified (#{path}) does not have a Dockerfile"
+        end
+    elsif path.file?
+        if path.basename == 'Dockerfile' 
+            yield(path.dirname)
+        else
+            fail 'You did not specify a valid Dockerfile'
+        end
+    else
+        fail 'Invalid path'
+    end
+end
+
+## commander config
+program :version, '0'
+program :description, 'utility to manage docker containers in virtual servers'
+
+command :run do |c|
+    c.syntax = 'yd run [-d directory/Dockerfile] [-u url] <command [args...]>'
+    c.description = 'Build a docker image and run <command> on the cluster.'
+    c.option '-d', '--dir directory/Dockerfile', String, 'specify the directory with a Dockerfile at its root.'
+    c.option '-u', '--url http://localhost:3000', String, 'specify the URL of the yarddog server'
+    c.action do |args, options|
+        options.default dir: Dir.getwd
+        resolve_url options
+        resolve_directory Pathname.new(options.dir) do |dir|
+            warn 'The container will be started without a command.' if args.empty?
+            site = RestClient::Resource.new(options.url)
+            Dir.mktmpdir do |tmp|
+                tarfile = "#{tmp}/run.tar.gz"
+                unless system "tar -cz -f #{tarfile} #{dir}"
+                    fail "Could not make tar in #{tarfile}" 
+                end
+                puts "made tar #{tarfile}"
+                request = { tar: Base64.strict_encode64(File.new(tarfile).read),
+                            command: args
+                          }
+                puts request.to_json
+                puts "#{options.url} site['/runs'].post request.to_json, content_type: 'application/json', multipart: true"
+            end
+        end
+    end
+end
+
+command :schedule do |c|
+    c.syntax = 'yd schedule <timespec> [-d directory/Dockerfile] [-i image] [-u url] <command [args...]>'
+    c.description = 'Schedule a run command to happen in the future or periodically.'
+    c.option '-d', '--dir directory/Dockerfile', String, 'specify the directory with a Dockerfile at its root.'
+    c.option '-u', '--url http://localhost:3000', String, 'specify the URL of the yarddog server'
+    c.action do |args, options|
+        # TODO: api not finished yet
+        options.default dir: Dir.getwd
+        resolve_url options
+        site = RestClient::Resource.new(options.url)
+    end
+end
+
+command :status do |c|
+    c.syntax = 'yd status [-u url] [jobid]'
+    c.description = 'Get the status of a command running now or scheduled later by its <jobid>. Provide no arguments to get a status of all running commands.'
+    c.option '-u', '--url http://localhost:3000', String, 'specify the URL of the yarddog server'
+    c.action do |args, options|
+        resolve_url options
+        site = RestClient::Resource.new(options.url)
+        if args.empty?
+            puts "site['/runs'].get"
+        else
+            puts "site['/runs/' + #{args[0]}].get"
+        end
+    end
+end
+alias_command :ls, :status
+
+command :stop do |c|
+    c.syntax = 'yd stop [-u url] <jobid>'
+    c.option '-u url', String, 'specify the URL of the yarddog server'
+    c.description = 'Attempt to stop a running command by its <jobid>'
+    c.action do |args, options|
+        resolve_url options
+        site = RestClient::Resource.new(options.url)
+        fail 'Please provide a job ID to terminate.' if args.empty?
+        puts "site['/runs' + '#{args[0]}'].delete"
+    end
+end
+## end commander config
