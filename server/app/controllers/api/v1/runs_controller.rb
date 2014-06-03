@@ -15,7 +15,8 @@ module Api
       # Return the single run specified by +id+
       #
       def show
-
+        @run = Run.find(params[:id])
+        render @run
       end
 
       #

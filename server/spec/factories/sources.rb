@@ -2,7 +2,5 @@
 
 FactoryGirl.define do
   factory :source do
-    string ""
-    attachment ""
   end
 end

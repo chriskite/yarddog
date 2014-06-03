@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20140602162339) do
+ActiveRecord::Schema.define(version: 20140603184250) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -25,6 +25,27 @@ ActiveRecord::Schema.define(version: 20140602162339) do
 
   add_index "api_keys", ["token"], name: "index_api_keys_on_token", unique: true, using: :btree
   add_index "api_keys", ["user_id"], name: "index_api_keys_on_user_id", using: :btree
+
+  create_table "runs", force: true do |t|
+    t.integer  "source_id"
+    t.integer  "user_id"
+    t.string   "instance_type"
+    t.datetime "created_at"
+    t.datetime "updated_at"
+  end
+
+  add_index "runs", ["source_id"], name: "index_runs_on_source_id", using: :btree
+  add_index "runs", ["user_id"], name: "index_runs_on_user_id", using: :btree
+
+  create_table "sources", force: true do |t|
+    t.string   "sha1"
+    t.string   "tgz_file_name"
+    t.string   "tgz_content_type"
+    t.integer  "tgz_file_size"
+    t.datetime "tgz_updated_at"
+    t.datetime "created_at"
+    t.datetime "updated_at"
+  end
 
   create_table "users", force: true do |t|
     t.string   "email"
