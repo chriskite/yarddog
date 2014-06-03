@@ -20,4 +20,10 @@ describe 'Users API' do
     expect(user['email']).to eq(expected_user.email)
   end
 
+  # POST /users
+  it 'should create the specified user'
+
+  # DELETE /users/:id
+  it 'should delete the user from the database'
+
 end
