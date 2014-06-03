@@ -32,9 +32,11 @@ module Api
           @source = Source.where(sha1: run_params[:sha1]).first
           if @source.nil?
             render json: {error: "No source with matching sha1"}, status: :bad_request
+          end
         else
           # make a new source object with the uploaded tgz
           @source = Source.create(tgz: run_params[:source_tgz])
+        end
 
         @run = Run.create(run_params)
         @run.source = @source

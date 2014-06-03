@@ -2,5 +2,6 @@
 
 FactoryGirl.define do
   factory :run do
+    instance_type "c3.xlarge"    
   end
 end

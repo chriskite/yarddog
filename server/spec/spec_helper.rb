@@ -99,4 +99,17 @@ RSpec.configure do |config|
   config.after(:each) do
     DatabaseCleaner.clean
   end
+
+  original_stderr = $stderr
+  original_stdout = $stdout
+  config.before(:all) do 
+    # Redirect stderr and stdout
+    $stderr = File.new(File.join(File.dirname(__FILE__), 'rspec.log'), 'w')
+    $stdout = File.new(File.join(File.dirname(__FILE__), 'rspec.log'), 'w')
+  end
+  config.after(:all) do 
+    $stderr = original_stderr
+    $stdout = original_stdout
+  end
+
 end

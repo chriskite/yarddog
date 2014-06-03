@@ -16,7 +16,6 @@ describe 'Users API' do
     expect(response.status).to eq(200)
 
     user = JSON.parse(response.body)
-    puts response.body
     expect(user['id']).to eq(expected_user.id)
     expect(user['email']).to eq(expected_user.email)
   end
