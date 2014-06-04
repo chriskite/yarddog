@@ -26,9 +26,9 @@ class Rest
         if ENV["YARDDOG_URL"]
             return ENV["YARDDOG_URL"]
         elsif @options.dir && File.exists?("#{@options.dir}/.yarddog.conf")
-            return File.new("#{@options.dir}/.yarddog.conf").read.strip!
+            return File.new("#{@options.dir}/.yarddog.conf").read.strip
         elsif File.exists?("#{ENV['HOME']}/.yarddog.conf")
-            return File.new("#{ENV['HOME']}/.yarddog.conf").read.strip!
+            return File.new("#{ENV['HOME']}/.yarddog.conf").read.strip
         else
             warn "Using the default URL #{DEFAULT_URL}." 
             return DEFAULT_URL
