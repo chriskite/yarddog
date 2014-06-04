@@ -7,67 +7,32 @@ require 'json'
 require 'tmpdir'
 # external
 require 'commander/import'
+#always_trace!
 require 'highline/import'
 require 'rest_client'
 require 'base64'
 
+## constants
 DEFAULT_URL = 'http://localhost:3000'
 
-## helper methods
-def resolve_url options
-    using_default = false
-    if ENV["YARDDOG_URL"]
-        config_url = ENV["YARDDOG_URL"]
-    elsif File.exists?("#{options.dir}/.yarddog.conf")
-        config_url = File.new("#{options.dir}/.yarddog.conf").read.strip!
-    elsif File.exists?("#{ENV['HOME']}/.yarddog.conf")
-        config_url = File.new("#{ENV['HOME']}/.yarddog.conf").read.strip!
-    else
-        config_url = DEFAULT_URL
-        using_default = true
+class Main # bad name sorry
+
+    def init args, options
+        @args = args
+        @options = options
     end
 
-    if using_default && options.url.nil?
-        warn "Using the default URL #{DEFAULT_URL}." 
-        options.url = DEFAULT_URL
-    else
-        options.default url: config_url
+    def init_and_run! args, options
+        init args, options
+        run!
     end
-end
 
-def resolve_directory path
-    if path.directory?
-        if (path + 'Dockerfile').exist?
-            yield(path)
-        else
-            fail "The directory specified (#{path}) does not have a Dockerfile"
-        end
-    elsif path.file?
-        if path.basename == 'Dockerfile' 
-            yield(path.dirname)
-        else
-            fail 'You did not specify a valid Dockerfile'
-        end
-    else
-        fail "Invalid path (#{path})"
-    end
-end
-
-## commander config
-program :version, '0'
-program :description, 'utility to manage docker containers in virtual servers'
-
-command :run do |c|
-    c.syntax = 'yd run [-d directory/Dockerfile] [-u url] <command [args...]>'
-    c.description = 'Build a docker image and run <command> on the cluster.'
-    c.option '-d', '--dir directory/Dockerfile', String, 'specify the directory with a Dockerfile at its root.'
-    c.option '-u', '--url http://localhost:3000', String, 'specify the URL of the yarddog server'
-    c.action do |args, options|
-        options.default dir: Dir.getwd
-        resolve_url options
-        resolve_directory Pathname.new(options.dir) do |dir|
-            warn 'The container will be started using the commands in the Dockerfile.' if args.empty?
-            site = RestClient::Resource.new(options.url)
+    def run!
+        @options.default dir: Dir.getwd
+        resolve_url
+        resolve_directory Pathname.new(@options.dir) do |dir|
+            warn 'The container will be started using the commands in the Dockerfile.' if @args.empty?
+            site = RestClient::Resource.new(@options.url)
             Dir.mktmpdir do |tmp|
                 tarfile = "#{tmp}/run.tar.gz"
                 unless system "tar -cz -f #{tarfile} #{dir}"
@@ -75,10 +40,64 @@ command :run do |c|
                 end
                 shasum = `shasum #{tarfile}`.split()[0]
                 puts "made tar #{tarfile}, sha = #{shasum}"
-                puts "#{options.url} site['/runs'].post sha1: shasum, source_tgz: File.new(tarfile, 'rb'), command: #{args}"
+                puts "#{@options.url} site['/runs'].post sha1: shasum, source_tgz: File.new(tarfile, 'rb'), command: #{@args}, instance_type: #{@options.type}"
             end
         end
     end
+
+    private
+    def resolve_url
+        using_default = false
+        if ENV["YARDDOG_URL"]
+            config_url = ENV["YARDDOG_URL"]
+        elsif File.exists?("#{@options.dir}/.yarddog.conf")
+            config_url = File.new("#{@options.dir}/.yarddog.conf").read.strip!
+        elsif File.exists?("#{ENV['HOME']}/.yarddog.conf")
+            config_url = File.new("#{ENV['HOME']}/.yarddog.conf").read.strip!
+        else
+            config_url = DEFAULT_URL
+            using_default = true
+        end
+        if using_default && @options.url.nil?
+            warn "Using the default URL #{DEFAULT_URL}." 
+            @options.url = DEFAULT_URL
+        else
+            @options.default url: config_url
+        end
+    end
+
+    private
+    def resolve_directory path
+        if path.directory?
+            if (path + 'Dockerfile').exist?
+                yield(path)
+            else
+                fail "The directory specified (#{path}) does not have a Dockerfile"
+            end
+        elsif path.file?
+            if path.basename == 'Dockerfile' 
+                yield(path.dirname)
+            else
+                fail 'You did not specify a valid Dockerfile'
+            end
+        else
+            fail "Invalid path (#{path})"
+        end
+    end
+
+end
+
+## commander config
+program :version, '0'
+program :description, 'CLI for Yarddog, a utility to manage docker containers in virtual servers'
+
+command :run do |c|
+    c.syntax = 'yd run [-d directory/Dockerfile] [-u url] <command [args...]>'
+    c.description = 'Build a docker image and run <command> on the cluster.'
+    c.option '-d', '--dir directory/Dockerfile', String, 'specify the directory with a Dockerfile at its root.'
+    c.option '-u', '--url http://localhost:3000', String, 'specify the URL of the yarddog server'
+    c.option '-t', '--type <instance_type>', String, 'specify the type of instance on which the command should be run'
+    c.action Main, :init_and_run!
 end
 
 command :schedule do |c|
@@ -86,6 +105,7 @@ command :schedule do |c|
     c.description = 'Schedule a run command to happen in the future or periodically.'
     c.option '-d', '--dir directory/Dockerfile', String, 'specify the directory with a Dockerfile at its root.'
     c.option '-u', '--url http://localhost:3000', String, 'specify the URL of the yarddog server'
+    c.option '-t', '--type <instance_type>', String, 'specify the type of instance on which the command should be run'
     c.action do |args, options|
         # TODO: api not finished yet
         options.default dir: Dir.getwd
@@ -121,4 +141,3 @@ command :stop do |c|
         puts "site['/runs' + '#{args[0]}'].delete"
     end
 end
-## end commander config
