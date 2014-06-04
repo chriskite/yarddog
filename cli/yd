@@ -49,7 +49,7 @@ def resolve_directory path
             fail 'You did not specify a valid Dockerfile'
         end
     else
-        fail 'Invalid path'
+        fail "Invalid path (#{path})"
     end
 end
 
@@ -66,19 +66,16 @@ command :run do |c|
         options.default dir: Dir.getwd
         resolve_url options
         resolve_directory Pathname.new(options.dir) do |dir|
-            warn 'The container will be started without a command.' if args.empty?
+            warn 'The container will be started using the commands in the Dockerfile.' if args.empty?
             site = RestClient::Resource.new(options.url)
             Dir.mktmpdir do |tmp|
                 tarfile = "#{tmp}/run.tar.gz"
                 unless system "tar -cz -f #{tarfile} #{dir}"
                     fail "Could not make tar in #{tarfile}" 
                 end
-                puts "made tar #{tarfile}"
-                request = { tar: Base64.strict_encode64(File.new(tarfile).read),
-                            command: args
-                          }
-                puts request.to_json
-                puts "#{options.url} site['/runs'].post request.to_json, content_type: 'application/json', multipart: true"
+                shasum = `shasum #{tarfile}`.split()[0]
+                puts "made tar #{tarfile}, sha = #{shasum}"
+                puts "#{options.url} site['/runs'].post sha1: shasum, source_tgz: File.new(tarfile, 'rb'), command: #{args}"
             end
         end
     end
