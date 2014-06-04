@@ -142,5 +142,5 @@ command :stop do |c|
     c.syntax = 'yd stop [-u url] <jobid>'
     c.option '-u', '--url http://localhost:3000', String, 'specify the URL of the yarddog server'
     c.description = 'Attempt to stop a running command by its <jobid>'
-    c.action { |args, options| Getter.new(args, options).status }
+    c.action { |args, options| Getter.new(args, options).stop }
 end
