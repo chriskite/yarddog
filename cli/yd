@@ -6,7 +6,7 @@ require 'pathname'
 require 'tmpdir'
 # external
 require 'commander/import'
-always_trace! if $DEBUG
+never_trace!
 require 'highline/import'
 require 'rest_client'
 
@@ -54,6 +54,10 @@ class Poster < Rest
             end
             shasum = `shasum #{tarfile}`.split()[0]
             puts "made tar #{tarfile}, sha = #{shasum}"
+            request = { sha1: shasum, source_tgz: File.new(tarfile, 'rb') }
+            request[:command] = @args unless @args.empty?
+            request[:instance_type] = @options.type unless @options.type.nil?
+            #@site['/runs'].post request
             puts %W[ #{@url}
                      @site['/runs'].post sha1: #{shasum}, 
                                          source_tgz: File.new(#{tarfile.inspect}, 'rb'),
@@ -112,11 +116,11 @@ program :version, '0'
 program :description, 'CLI for Yarddog, a utility to manage docker containers in virtual servers'
 
 command :run do |c|
-    c.syntax = 'yd run [-d directory/Dockerfile] [-u url] <command [args...]>'
+    c.syntax = 'yd run [-d directory/Dockerfile] [-u url] [-t type] <command [args...]>'
     c.description = 'Build a docker image and run <command> on the cluster.'
     c.option '-d', '--dir directory/Dockerfile', String, 'specify the directory with a Dockerfile at its root.'
     c.option '-u', '--url http://localhost:3000', String, 'specify the URL of the yarddog server'
-    c.option '-t', '--type <instance_type>', String, 'specify the type of instance on which the command should be run'
+    c.option '-t', '--type instance_type', String, 'specify the type of instance on which the command should be run'
     c.action { |args, options| Poster.new(args, options).run }
 end
 
