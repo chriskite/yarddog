@@ -39,7 +39,7 @@ class Rest
 
 end
 
-class Poster < Rest
+class Runner < Rest
     TARNAME = 'run.tar.gz'
 
     def initialize args, options
@@ -48,29 +48,26 @@ class Poster < Rest
     end
 
     def run
-        warn 'The container will be started using the commands in the Dockerfile.' if @args.empty?
-        Dir.mktmpdir do |tmp|
-            tarfile = "#{tmp}/#{TARNAME}"
-            unless system "tar -cz -f #{tarfile} #{@dir}"
-                fail "Could not make tar in #{tarfile}" 
-            end
-            shasum = `shasum #{tarfile}`.split()[0]
-            puts "made tar #{tarfile}, sha = #{shasum}"
-            request = { sha1: shasum, source_tgz: File.new(tarfile, 'rb') }
-            request[:command] = @args unless @args.empty?
-            request[:instance_type] = @options.type unless @options.type.nil?
-            #@site['/runs'].post request
-            puts %W[ #{@url}
-                     @site['/runs'].post sha1: #{shasum}, 
-                                         source_tgz: File.new(#{tarfile.inspect}, 'rb'),
-                                         command: #{@args},
-                                         instance_type: #{@options.type || "nil"}
-                   ].join(' ')
-        end
+        request = mkrequest()
+        #@site['/runs'].post request
+        puts request
+        FileUtils.remove_entry @tmp
     end
 
-    def schedule
-        # TODO: api not finished yet
+    protected
+    def mkrequest 
+        warn 'The container will be started using the commands in the Dockerfile.' if @args.empty?
+        @tmp = Dir.mktmpdir
+        tarfile = "#{@tmp}/#{TARNAME}"
+        unless system "tar -cz -f #{tarfile} #{@dir}"
+            fail "Could not make tar in #{tarfile}" 
+        end
+        shasum = `shasum #{tarfile}`.split()[0]
+        puts "made tar #{tarfile}, sha = #{shasum}"
+        request = { sha1: shasum, source_tgz: File.new(tarfile, 'rb') }
+        request[:command] = @args unless @args.empty?
+        request[:instance_type] = @options.type unless @options.type.nil?
+        return request
     end
 
     protected
@@ -95,6 +92,36 @@ class Poster < Rest
     end
 
 end
+
+class Scheduler < Runner
+
+    def initialize args, options
+        if options.cron
+            @cron = cron_validate options.cron
+        else
+            fail 'The schedule command requires the -c option. Try schedule --help for more information'
+        end
+        args_warning
+        super args, options
+    end
+
+    def schedule
+        # TODO: api not finished yet
+        # probably something like:
+        # request = mkrequest()
+        # request[:schedule] = parse_time
+        # @site['/runs'].post request
+    end
+
+    protected
+    def cron_validate
+    end
+
+    def args_warning
+    end
+
+end
+
 
 class Getter < Rest
 
