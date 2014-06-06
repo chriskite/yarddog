@@ -145,27 +145,27 @@ program :version, '0'
 program :description, 'CLI for Yarddog, a utility to manage docker containers in virtual servers'
 
 command :run do |c|
-    c.syntax = 'yd run [-d directory/Dockerfile] [-u url] [-t type] <command [args...]>'
+    c.syntax = 'yd run [-d directory/Dockerfile] [-u url] [-t type] -- <command [args...]>'
     c.description = 'Build a docker image and run <command> on the cluster.'
     c.option '-d', '--dir directory/Dockerfile', String, 'specify the directory with a Dockerfile at its root.'
     c.option '-u', '--url http://localhost:3000', String, 'specify the URL of the yarddog server'
     c.option '-t', '--type instance_type', String, 'specify the type of instance on which the command should be run'
-    c.action { |args, options| Poster.new(args, options).run }
+    c.action { |args, options| Runner.new(args, options).run }
 end
 
 command :schedule do |c|
-    c.syntax = 'yd schedule <timespec> [-d directory/Dockerfile] [-i image] [-u url] <command [args...]>'
+    c.syntax = 'yd schedule [-d directory/Dockerfile] [-u url] <-c "quoted cron string"> -- <command [args...]>'
     c.description = 'Schedule a run command to happen in the future or periodically.'
     c.option '-d', '--dir directory/Dockerfile', String, 'specify the directory with a Dockerfile at its root.'
     c.option '-u', '--url http://localhost:3000', String, 'specify the URL of the yarddog server'
-    c.option '-t', '--type <instance_type>', String, 'specify the type of instance on which the command should be run'
-    c.action { |args, options| Poster.new(args, options).schedule }
+    c.option '-t', '--type instance_type', String, 'specify the type of instance on which the command should be run'
+    c.option '-c', '--cron "cronjob string"', String, 'use cron syntax to specify a schedule for the command. This option is required. IMPORTANT: Make sure your cron string is "enquoted", otherwise the shell may expand special characters and the <command [args...]> will be incorrect.'
+    c.action { |args, options| Scheduler.new(args, options).schedule }
 end
 
 command :status do |c|
     c.syntax = 'yd status [-u url] [jobid]'
-    c.description = 'Get the status of a command running now or scheduled later by its <jobid>. \
-    Provide no arguments to get a status of all running commands.'
+    c.description = 'Get the status of a command running now or scheduled later.'
     c.option '-u', '--url http://localhost:3000', String, 'specify the URL of the yarddog server'
     c.action { |args, options| Getter.new(args, options).status }
 end
