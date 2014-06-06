@@ -7,4 +7,11 @@ class Source < ActiveRecord::Base
                              size: { in: 0..20.megabytes }
 
   has_many :runs
+  before_save :create_sha1
+
+  private
+
+  def create_sha1
+    self.sha1 = Digest::SHA1.file(tgz.queued_for_write[:original].path).hexdigest
+  end
 end
