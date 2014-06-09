@@ -20,7 +20,7 @@ class YarddogConf
         elsif ENV['HOME'] && (path = "#{ENV['HOME']}/.yarddog.conf") && File.exists?(path)
             @file = File.new path
         else
-            warn "No config file found."
+            fail "No config file found. Please create one and put at least your API token on a line beginning with ‘token = ’"
         end
 
         @file.each do |line|
