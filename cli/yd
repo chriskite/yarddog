@@ -71,7 +71,8 @@ class Rest
 end
 
 class Runner < Rest
-    TARNAME = 'run.tgz'
+    TARNAME = 'source.tar'
+    GZNAME  = 'source.tgz'
 
     def initialize args, options
         super args, options
@@ -105,13 +106,17 @@ class Runner < Rest
     def make_tar
         warn 'The container will be started using the commands in the Dockerfile.' if @args.empty?
         @tmp = Dir.mktmpdir
-        tar = "#{@tmp}/#{TARNAME}"
-        unless system "tar -cz -f #{tar} #{@dir} 2>/dev/null"
-            fail "Could not make tar in #{tar}"
+        tarname = "#{@tmp}/#{TARNAME}"
+        gzname  = "#{@tmp}/#{GZNAME}"
+        unless system "tar -c -f #{tarname} #{@dir} 2>/dev/null"
+            fail "Could not make tar in #{tarname}"
         end
-        shasum = `shasum #{tar}`.split()[0]
-        puts "made tar #{tar}, sha = #{shasum}" if $DEBUG
-        tarfile = File.new tar
+        unless system "gzip -nk #{tarname}"
+            fail "Could not gzip #{tarname} into #{gzname}"
+        end
+        shasum = `shasum #{tarname}`.split()[0]
+        puts "made tar #{tarname}, sha = #{shasum}" if $DEBUG
+        tarfile = File.new tarname
         return [tarfile, shasum]
     end
 
