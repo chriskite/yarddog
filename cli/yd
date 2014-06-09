@@ -56,26 +56,40 @@ class Runner < Rest
     end
 
     def run
-        request = mkrequest()
-        #@site['/runs'].post request
-        puts request
-        FileUtils.remove_entry @tmp
+        begin
+            tar, sha = make_tar
+            request = { sha1: sha }
+            request[:type] = @options.type if @options.type
+            request[:args] = @args if @args
+            puts request.inspect
+            begin
+                response1 = @site['runs'].post request
+            rescue Exception => e
+                if e.http_code == 400
+                    request[:source_tgz] = tar
+                    request.delete :sha1
+                    response2 = @site['runs'].post request
+                end
+            end
+        rescue Exception => e
+            FileUtils.remove_entry @tmp
+            fail e.inspect
+        end
     end
 
+    # make sure to delete the tar afterward
     protected
-    def mkrequest 
+    def make_tar
         warn 'The container will be started using the commands in the Dockerfile.' if @args.empty?
         @tmp = Dir.mktmpdir
-        tarfile = "#{@tmp}/#{TARNAME}"
-        unless system "tar -cz -f #{tarfile} #{@dir}"
-            fail "Could not make tar in #{tarfile}" 
+        tar = "#{@tmp}/#{TARNAME}"
+        unless system "tar -cz -f #{tar} #{@dir} 2>/dev/null"
+            fail "Could not make tar in #{tar}"
         end
-        shasum = `shasum #{tarfile}`.split()[0]
-        puts "made tar #{tarfile}, sha = #{shasum}"
-        request = { sha1: shasum, source_tgz: File.new(tarfile, 'rb') }
-        request[:command] = @args unless @args.empty?
-        request[:instance_type] = @options.type unless @options.type.nil?
-        return request
+        shasum = `shasum #{tar}`.split()[0]
+        puts "made tar #{tar}, sha = #{shasum}" if $DEBUG
+        tarfile = File.new tar
+        return [tarfile, shasum]
     end
 
     protected
@@ -113,9 +127,9 @@ class Scheduler < Runner
     def schedule
         # TODO: api not finished yet
         # probably something like:
-        # request = mkrequest()
-        # request[:schedule] = parse_time
-        # @site['/runs'].post request
+        # tar, sha = make_tar
+        # request[:schedule] = @options.cron
+        # @site['runs'].post request
     end
 
 end
