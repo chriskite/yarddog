@@ -82,22 +82,29 @@ class Runner < Rest
     def run
         begin
             tar, sha = make_tar
-            request = { sha1: sha }
+            request = {sha1: sha, token: @token, source_tgz: tar}
             request[:type] = @options.type if @options.type
-            request[:args] = @args if @args
+            request[:args] = @args unless @args.empty?
             puts request.inspect
-            begin
-                response1 = @site['runs'].post request
-            rescue Exception => e
-                if e.http_code == 400
-                    request[:source_tgz] = tar
-                    request.delete :sha1
-                    response2 = @site['runs'].post request
-                end
-            end
+            send! request
         rescue Exception => e
             FileUtils.remove_entry @tmp
             fail e.inspect
+        end
+    end
+
+    protected
+    def send! request
+        tar = request[:source_tgz]
+        begin
+            request.delete :source_tgz
+            response1 = @site['runs'].post request
+        rescue Exception => e
+            if e.http_code == 400
+                request[:source_tgz] = tar
+                request.delete :sha1
+                response2 = @site['runs'].post request
+            end
         end
     end
 
@@ -157,7 +164,10 @@ class Scheduler < Runner
         # probably something like:
         # tar, sha = make_tar
         # request[:schedule] = @options.cron
-        # @site['runs'].post request
+        # request = {sha1: sha, token: @token}
+        # request[:type] = @options.type if @options.type
+        # request[:args] = @args if @args
+        # send! request
     end
 
 end
