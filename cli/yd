@@ -10,8 +10,10 @@ never_trace!
 require 'highline/import'
 require 'rest_client'
 
+API_VERSION=1
+
 class Rest
-    DEFAULT_URL = 'http://localhost:3000'
+    DEFAULT_URL = 'http://localhost:3000/api/v1/'
 
     def initialize args, options
         @args = args
@@ -22,18 +24,23 @@ class Rest
 
     protected
     def resolve_url
-        return @options.url unless @options.url.nil?
-        if ENV["YARDDOG_URL"] && !ENV["YARDDOG_URL"].empty?
-            return ENV["YARDDOG_URL"]
+        if @options.url
+            @url = @options.url
+        elsif ENV["YARDDOG_URL"] && !ENV["YARDDOG_URL"].empty?
+            @url = ENV["YARDDOG_URL"]
         elsif @options.dir && File.exists?("#{@options.dir}/.yarddog.conf") \
             && !(s = File.new("#{@options.dir}/.yarddog.conf").read.strip).empty?
-            return s
+            @url = s
         elsif File.exists?("#{ENV['HOME']}/.yarddog.conf") \
             && !(s = File.new("#{ENV['HOME']}/.yarddog.conf").read.strip).empty?
-            return s
+            @url = s
         else
             warn "Using the default URL #{DEFAULT_URL}." 
-            return DEFAULT_URL
+            @url = DEFAULT_URL
+        end
+        validator = /api\/v#{API_VERSION}\/?$/
+        unless @url =~ validator
+            fail "Improper API Version or invalid URL. You provided ‘#{@url}’ but the required API version is v#{API_VERSION}"
         end
     end
 
