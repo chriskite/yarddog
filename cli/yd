@@ -76,7 +76,7 @@ end
 
 class Runner < Rest
     TARNAME = 'source.tar'
-    GZNAME  = 'source.tgz'
+    GZNAME  = 'source.tar.gz'
 
     def initialize args, options
         super args, options
@@ -127,8 +127,8 @@ class Runner < Rest
         end
         shasum = `shasum #{tarname}`.split()[0]
         puts "made tar #{tarname}, sha = #{shasum}" if $DEBUG
-        tarfile = File.new tarname
-        return [tarfile, shasum]
+        file = File.new gzname
+        return [file, shasum]
     end
 
     protected
