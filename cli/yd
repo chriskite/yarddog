@@ -18,7 +18,7 @@ class Rest
     def initialize args, options
         @args = args
         @options = options
-        @url = resolve_url
+        resolve_url
         @site = RestClient::Resource.new(@url)
     end
 
@@ -47,7 +47,7 @@ class Rest
 end
 
 class Runner < Rest
-    TARNAME = 'run.tar.gz'
+    TARNAME = 'run.tgz'
 
     def initialize args, options
         super args, options
@@ -103,12 +103,9 @@ end
 class Scheduler < Runner
 
     def initialize args, options
-        if options.cron
-            @cron = cron_validate options.cron
-        else
+        unless options.cron
             fail 'The schedule command requires the -c option. Try schedule --help for more information'
         end
-        args_warning
         super args, options
     end
 
@@ -118,13 +115,6 @@ class Scheduler < Runner
         # request = mkrequest()
         # request[:schedule] = parse_time
         # @site['/runs'].post request
-    end
-
-    protected
-    def cron_validate
-    end
-
-    def args_warning
     end
 
 end
