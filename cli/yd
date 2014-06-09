@@ -12,12 +12,39 @@ require 'rest_client'
 
 API_VERSION=1
 
+class YarddogConf
+
+    def initialize options
+        if options.dir && (path = "#{options.dir}/.yarddog.conf") && File.exists?(path)
+            @file = File.new path
+        elsif ENV['HOME'] && (path = "#{ENV['HOME']}/.yarddog.conf") && File.exists?(path)
+            @file = File.new path
+        else
+            warn "No config file found."
+        end
+
+        @file.each do |line|
+            match = line.match /(url = |token = )(.*)/
+            if match[1] == 'url = '
+                @url = match[2]
+            elsif match[1] == 'token = '
+                @token = match[2]
+            end
+        end
+    end
+
+    attr_reader :url, :token
+
+end
+
 class Rest
     DEFAULT_URL = 'http://localhost:3000/api/v1/'
 
     def initialize args, options
         @args = args
         @options = options
+        @conf = YarddogConf.new options
+        @token = @conf.token
         resolve_url
         @site = RestClient::Resource.new(@url)
     end
@@ -28,12 +55,8 @@ class Rest
             @url = @options.url
         elsif ENV["YARDDOG_URL"] && !ENV["YARDDOG_URL"].empty?
             @url = ENV["YARDDOG_URL"]
-        elsif @options.dir && File.exists?("#{@options.dir}/.yarddog.conf") \
-            && !(s = File.new("#{@options.dir}/.yarddog.conf").read.strip).empty?
-            @url = s
-        elsif File.exists?("#{ENV['HOME']}/.yarddog.conf") \
-            && !(s = File.new("#{ENV['HOME']}/.yarddog.conf").read.strip).empty?
-            @url = s
+        elsif @conf.url
+            @url = @conf.url
         else
             warn "Using the default URL #{DEFAULT_URL}." 
             @url = DEFAULT_URL
