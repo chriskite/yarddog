@@ -38,7 +38,8 @@ class Rest
             warn "Using the default URL #{DEFAULT_URL}." 
             @url = DEFAULT_URL
         end
-        validator = /api\/v#{API_VERSION}\/?$/
+        @url += '/' unless @url.end_with? '/'
+        validator = /api\/v#{API_VERSION}\/$/
         unless @url =~ validator
             fail "Improper API Version or invalid URL. You provided ‘#{@url}’ but the required API version is v#{API_VERSION}"
         end
@@ -124,15 +125,15 @@ class Getter < Rest
 
     def status
         if @args.empty?
-            puts "site['/runs'].get"
+            puts "site['runs'].get"
         else
-            puts "site['/runs/' + #{@args[0]}].get"
+            puts "site['runs/' + #{@args[0]}].get"
         end
     end
 
     def stop
         fail 'Please provide a job ID to terminate.' if @args.empty?
-        puts "site['/runs' + '#{@args[0]}'].delete"
+        puts "site['runs' + '#{@args[0]}'].delete"
     end
 
 end
