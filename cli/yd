@@ -14,8 +14,8 @@ API_VERSION=1
 
 class YarddogConf
 
-    def initialize options
-        if options.dir && (path = "#{options.dir}/.yarddog.conf") && File.exists?(path)
+    def initialize dir
+        if dir && (path = "#{dir}/.yarddog.conf") && File.exists?(path)
             @file = File.new path
         elsif ENV['HOME'] && (path = "#{ENV['HOME']}/.yarddog.conf") && File.exists?(path)
             @file = File.new path
@@ -31,6 +31,10 @@ class YarddogConf
                 @token = match[2]
             end
         end
+
+        unless @token
+            fail "No token found. Please create one and put at least your API token on a line beginning with ‘token = ’ in your .yarddog.conf"
+        end
     end
 
     attr_reader :url, :token
@@ -43,7 +47,7 @@ class Rest
     def initialize args, options
         @args = args
         @options = options
-        @conf = YarddogConf.new options
+        @conf = YarddogConf.new(options.dir || Dir.getwd)
         @token = @conf.token
         resolve_url
         @site = RestClient::Resource.new(@url)
