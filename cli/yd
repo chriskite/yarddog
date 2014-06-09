@@ -181,15 +181,17 @@ class Getter < Rest
 
     def status
         if @args.empty?
-            puts "site['runs'].get"
+            response = @site['runs'].get params: {token: @token}
+            puts response.to_s
         else
-            puts "site['runs/' + #{@args[0]}].get"
+            response = @site['runs/' + @args[0]].get params: {token: @token}
+            puts response.to_s
         end
     end
 
     def stop
         fail 'Please provide a job ID to terminate.' if @args.empty?
-        puts "site['runs' + '#{@args[0]}'].delete"
+        response = @site['runs' + @args[0].to_s].delete params: {token: @token}
     end
 
 end
