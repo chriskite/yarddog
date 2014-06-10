@@ -3,6 +3,8 @@ class User < ActiveRecord::Base
   has_many :runs
   after_create :create_api_key
 
+  validates :email, presence: true
+
   private
 
   def create_api_key
