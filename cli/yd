@@ -191,6 +191,22 @@ class Getter < Rest
     def stop
         fail 'Please provide a job ID to terminate.' if @args.empty?
         response = @site['runs' + @args[0].to_s].delete params: {token: @token}
+        puts response.to_s
+    end
+
+    def user_info
+        response = @site['users/' + @args[0].to_s].get params: {token: @token}
+        puts response.to_s
+    end
+
+    def create_user
+        response = @site['users'].post email: @args.join, token: @token
+        puts response.to_s
+    end
+
+    def delete_user
+        response = @site['users/' + @args[0].to_s].delete params: {token: @token}
+        puts response.to_s
     end
 
 end
