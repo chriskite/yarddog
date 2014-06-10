@@ -23,17 +23,16 @@ class YarddogConf
             fail "No config file found. Please create one and put at least your API token on a line beginning with ‘token = ’"
         end
 
-        @file.each do |line|
-            match = line.match /(url = |token = )(.*)/
+        @file.each do |line| line.match /(url = |token = )(.*)/ do |match|
             if match[1] == 'url = '
                 @url = match[2]
             elsif match[1] == 'token = '
                 @token = match[2]
             end
-        end
+        end end
 
         unless @token
-            fail "No token found. Please create one and put at least your API token on a line beginning with ‘token = ’ in your .yarddog.conf"
+            fail "No token found. Please create one and put at least your API token on a line beginning with ‘token = ’ in your config file"
         end
     end
 
@@ -66,7 +65,7 @@ class Rest
             @url = DEFAULT_URL
         end
         @url += '/' unless @url.end_with? '/'
-        validator = /api\/v#{API_VERSION}\/$/
+        validator = %r|api/v#{API_VERSION}/$|
         unless @url =~ validator
             fail "Improper API Version or invalid URL. You provided ‘#{@url}’ but the required API version is v#{API_VERSION}"
         end
@@ -93,7 +92,7 @@ class Runner < Rest
             send! request
         rescue Exception => e
             FileUtils.remove_entry @tmp
-            fail e.inspect
+            raise e
         end
     end
 
@@ -103,7 +102,7 @@ class Runner < Rest
         begin
             request.delete :source_tgz
             response1 = @site['runs'].post request
-        rescue Exception => e
+        rescue RestClient::RequestFailed => e
             if e.http_code == 400
                 request[:source_tgz] = tar
                 request.delete :sha1
