@@ -1,6 +1,3 @@
-SPEC_SOURCE_FILE = 'source.tgz'
-SPEC_SOURCE_SHA1 = '83bfab7560e562641cc4d403946d7c8fe189c62d' 
-
 ENV["RAILS_ENV"] ||= 'test'
 require File.expand_path("../../config/environment", __FILE__)
 require 'rspec/rails'
