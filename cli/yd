@@ -2,38 +2,58 @@
 
 ## libraries
 # stdlib
-require 'pathname'
 require 'tmpdir'
 # external
 require 'commander/import'
-never_trace!
 require 'highline/import'
 require 'rest_client'
 
 API_VERSION=1
 
+## commander config
+program :version, '0'
+program :description, 'CLI for Yarddog, a utility to manage docker containers in virtual servers'
+always_trace!
+#never_trace! unless $DEBUG
+ENV['PAGER'] = 'cat' # disable paging
+
+# automate commander config
+def add_command name, desc, cls, *aliases
+    command name.to_sym do |c|
+        c.syntax = 'yd ' + name.to_s + ' ' + cls.specific_syntax + ' ' + cls.specific_args
+        c.description = desc
+        cls.specific_options c
+        c.action { |args, options| cls.new(args, options).run! }
+    end
+    aliases.each do |a|
+        alias_command a.to_sym, name.to_sym
+    end
+    name.match /(\w+)-(\w+)/ do |match|
+        alias_command (match[1] + ' ' + match[2]).to_sym, name.to_sym
+    end
+end
+
 class YarddogConf
 
-    def initialize dir
-        if dir && (path = "#{dir}/.yarddog.conf") && File.exists?(path)
-            @file = File.new path
-        elsif ENV['HOME'] && (path = "#{ENV['HOME']}/.yarddog.conf") && File.exists?(path)
-            @file = File.new path
-        else
-            fail "No config file found. Please create one and put at least your API token on a line beginning with ‘token = ’"
+    def parse_home_file
+        path = "#{ENV['HOME']}/.yarddog.conf" if ENV['HOME']
+        if File.exists?(path)
+            parse_file File.new path
         end
+    end
 
-        @file.each do |line| line.match /(url = |token = )(.*)/ do |match|
+    def parse_file file
+        if File.directory?(file)
+            file = File.join(file, '.yarddog.conf')
+        end
+        return unless File.exists?(file)
+        File.new(file).each do |line| line.match /(url = |token = )(.*)/ do |match|
             if match[1] == 'url = '
                 @url = match[2]
             elsif match[1] == 'token = '
                 @token = match[2]
             end
         end end
-
-        unless @token
-            fail "No token found. Please create one and put at least your API token on a line beginning with ‘token = ’ in your config file"
-        end
     end
 
     attr_reader :url, :token
@@ -43,13 +63,37 @@ end
 class Rest
     DEFAULT_URL = 'http://localhost:3000/api/v1/'
 
+    def self.specific_options c
+        c.option '-u', '--url http://localhost:3000', String, 'specify the URL of the yarddog server'
+    end
+
+    def self.specific_syntax
+        '[-u url]'
+    end
+
+    def self.specific_args
+        ''
+    end
+
+    def run!
+    end
+
     def initialize args, options
         @args = args
         @options = options
-        @conf = YarddogConf.new(options.dir || Dir.getwd)
+        @conf = YarddogConf.new
+        @conf.parse_home_file
+        @conf.parse_file Dir.getwd
         @token = @conf.token
         resolve_url
         @site = RestClient::Resource.new(@url)
+    end
+
+    protected
+    def check_token
+        unless @token
+            fail "No token found. Please create one and put at least your API token on a line beginning with ‘token = ’ in your config file"
+        end
     end
 
     protected
@@ -77,12 +121,29 @@ class Runner < Rest
     TARNAME = 'source.tar'
     GZNAME  = 'source.tar.gz'
 
-    def initialize args, options
-        super args, options
-        @dir = resolve_dir Pathname.new(options.dir || Dir.getwd)
+    def self.specific_options c
+        super c
+        c.option '-d', '--dir ./Dockerfile', String, 'specify the directory with a Dockerfile at its root.'
+        c.option '-t', '--type c3.xlarge', String, 'specify the type of instance on which the command should be run'
     end
 
-    def run
+    def self.specific_syntax
+        #self.class.superclass.specific_syntax + ' [-d directory/Dockerfile] [-t instance_type]'
+        super + ' [-d directory/Dockerfile] [-t instance_type]'
+    end
+
+    def self.specific_args
+        '<command [args...]>'
+    end
+
+    def initialize args, options
+        super args, options
+        @dir = resolve_dir File.new(options.dir || Dir.getwd)
+        @conf.parse_file @dir # Runner has additional information to share with conf, the -d option
+    end
+
+    def run!
+        check_token
         begin
             tar, sha = make_tar
             request = {sha1: sha, token: @token, source_tgz: tar}
@@ -107,6 +168,8 @@ class Runner < Rest
                 request[:source_tgz] = tar
                 request.delete :sha1
                 response2 = @site['runs'].post request
+            else
+                fail e
             end
         end
     end
@@ -116,44 +179,52 @@ class Runner < Rest
     def make_tar
         warn 'The container will be started using the commands in the Dockerfile.' if @args.empty?
         @tmp = Dir.mktmpdir
-        tarname = "#{@tmp}/#{TARNAME}"
-        gzname  = "#{@tmp}/#{GZNAME}"
-        unless system "tar -c -f #{tarname} #{@dir} 2>/dev/null"
-            fail "Could not make tar in #{tarname}"
+        tarname = File.join(@tmp, TARNAME)
+        gzname  = File.join(@tmp, GZNAME)
+        unless system "tar -c -f '#{tarname}' '#{@dir}' 2>/dev/null"
+            fail "Could not make tar in ‘#{tarname}’: child exited with status #{$?}"
         end
         unless system "gzip -nk #{tarname}"
-            fail "Could not gzip #{tarname} into #{gzname}"
+            fail "Could not gzip ‘#{tarname}’ into ‘#{gzname}’: child exited with status #{$?}"
         end
         shasum = `shasum #{tarname}`.split()[0]
-        puts "made tar #{tarname}, sha = #{shasum}" if $DEBUG
         file = File.new gzname
         return [file, shasum]
     end
 
     protected
-    def resolve_dir path
-        if path.directory?
-            if (path + 'Dockerfile').exist?
-                return path
+    def resolve_dir file
+        if File.directory?(file)
+            if (file = (File.join(file, 'Dockerfile'))) && File.exist?(file)
+                return file
             else
-                fail "The directory specified (#{path}) does not have a Dockerfile"
+                fail "The directory specified (#{file}) does not have a Dockerfile"
             end
-        elsif path.file?
-            puts path.basename
-            if path.basename.to_s == 'Dockerfile' 
+        elsif File.file?(file)
+            if File.basename(file) == 'Dockerfile' 
                 # might want to add a check here if the file is actually a Dockerfile and not just named that.
-                return path.dirname
+                return File.dirname(file)
             else
                 fail 'You did not specify a valid Dockerfile'
             end
         else
-            fail "Invalid path (#{path})"
+            fail "Invalid file (#{file})"
         end
     end
 
 end
+add_command("run", 'Build a docker image and run <command> on the cluster.', Runner)
 
 class Scheduler < Runner
+
+    def self.specific_options c
+        super c
+        c.option '-c', '--cron "cronjob string"', String, 'use cron syntax to specify a schedule for the command. This option is required. IMPORTANT: Make sure your cron string is "enquoted", otherwise the shell may expand special characters and the <command [args...]> will be incorrect.'
+    end
+
+    def self.specific_syntax
+        super + ' [-c "cron string"]'
+    end
 
     def initialize args, options
         unless options.cron
@@ -174,11 +245,11 @@ class Scheduler < Runner
     end
 
 end
+add_command("schedule", 'Schedule a run command to happen in the future or periodically.', Scheduler)
 
-
-class Getter < Rest
-
-    def status
+class Status < Rest
+    def run!
+        check_token
         if @args.empty?
             response = @site['runs'].get params: {token: @token}
             puts response.to_s
@@ -187,64 +258,54 @@ class Getter < Rest
             puts response.to_s
         end
     end
+end
+add_command("status", 'Get the status of a command running now or scheduled later.', Status)
 
-    def stop
+class Stop < Rest
+    def self.specific_args
+        '<job ID>'
+    end
+    def run!
+        check_token
         fail 'Please provide a job ID to terminate.' if @args.empty?
         response = @site['runs' + @args[0].to_s].delete params: {token: @token}
         puts response.to_s
     end
+end
+add_command("stop", 'Attempt to stop a running command by its <jobid>', Stop)
 
-    def user_info
+class User_info < Rest
+    def self.specific_args
+        '<user ID>'
+    end
+    def run!
+        check_token
         response = @site['users/' + @args[0].to_s].get params: {token: @token}
         puts response.to_s
     end
+end
+add_command("user-info", 'List information about a user specified by <user ID>', User_info, "info", "user")
 
-    def create_user
+class Create_user < Rest
+    def self.specific_args 
+        '<email>'
+    end
+    def run!
+        check_token
         response = @site['users'].post email: @args.join, token: @token
         puts response.to_s
     end
+end
+add_command("create-user", 'Create a user specified by <email>', Create_user, "create")
 
-    def delete_user
+class Delete_user < Rest
+    def self.specific_args
+        '<user ID>'
+    end
+    def run!
+        check_token
         response = @site['users/' + @args[0].to_s].delete params: {token: @token}
         puts response.to_s
     end
-
 end
-
-## commander config
-program :version, '0'
-program :description, 'CLI for Yarddog, a utility to manage docker containers in virtual servers'
-
-command :run do |c|
-    c.syntax = 'yd run [-d directory/Dockerfile] [-u url] [-t type] -- <command [args...]>'
-    c.description = 'Build a docker image and run <command> on the cluster.'
-    c.option '-d', '--dir directory/Dockerfile', String, 'specify the directory with a Dockerfile at its root.'
-    c.option '-u', '--url http://localhost:3000', String, 'specify the URL of the yarddog server'
-    c.option '-t', '--type instance_type', String, 'specify the type of instance on which the command should be run'
-    c.action { |args, options| Runner.new(args, options).run }
-end
-
-command :schedule do |c|
-    c.syntax = 'yd schedule [-d directory/Dockerfile] [-u url] <-c "quoted cron string"> -- <command [args...]>'
-    c.description = 'Schedule a run command to happen in the future or periodically.'
-    c.option '-d', '--dir directory/Dockerfile', String, 'specify the directory with a Dockerfile at its root.'
-    c.option '-u', '--url http://localhost:3000', String, 'specify the URL of the yarddog server'
-    c.option '-t', '--type instance_type', String, 'specify the type of instance on which the command should be run'
-    c.option '-c', '--cron "cronjob string"', String, 'use cron syntax to specify a schedule for the command. This option is required. IMPORTANT: Make sure your cron string is "enquoted", otherwise the shell may expand special characters and the <command [args...]> will be incorrect.'
-    c.action { |args, options| Scheduler.new(args, options).schedule }
-end
-
-command :status do |c|
-    c.syntax = 'yd status [-u url] [jobid]'
-    c.description = 'Get the status of a command running now or scheduled later.'
-    c.option '-u', '--url http://localhost:3000', String, 'specify the URL of the yarddog server'
-    c.action { |args, options| Getter.new(args, options).status }
-end
-alias_command :ls, :status
-
-command :stop do |c|
-    c.syntax = 'yd stop [-u url] <jobid>'
-    c.option '-u', '--url http://localhost:3000', String, 'specify the URL of the yarddog server'
-    c.description = 'Attempt to stop a running command by its <jobid>'
-    c.action { |args, options| Getter.new(args, options).stop }
-end
+add_command("delete-user", 'Delete a user specified by <user ID>', Delete_user, "delete")
