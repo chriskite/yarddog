@@ -28,8 +28,8 @@ def add_command name, desc, cls, *aliases
     aliases.each do |a|
         alias_command a.to_sym, name.to_sym
     end
-    name.match /(\w+)-(\w+)/ do |match|
-        alias_command (match[1] + ' ' + match[2]).to_sym, name.to_sym
+    name.match /-/ do |match|
+        alias_command name.sub(/-/, ' ').to_sym, name.to_sym
     end
 end
 
@@ -128,7 +128,6 @@ class Runner < Rest
     end
 
     def self.specific_syntax
-        #self.class.superclass.specific_syntax + ' [-d directory/Dockerfile] [-t instance_type]'
         super + ' [-d directory/Dockerfile] [-t instance_type]'
     end
 
@@ -144,33 +143,27 @@ class Runner < Rest
 
     def run!
         check_token
-        begin
-            tar, sha = make_tar
+        make_tar do |tar, sha|
             request = {sha1: sha, token: @token, source_tgz: tar}
             request[:type] = @options.type if @options.type
             request[:args] = @args unless @args.empty?
             puts request.inspect
             send! request
-        rescue Exception => e
-            FileUtils.remove_entry @tmp
-            raise e
         end
     end
 
     protected
     def send! request
         tar = request[:source_tgz]
-        begin
-            request.delete :source_tgz
-            response1 = @site['runs'].post request
-        rescue RestClient::RequestFailed => e
-            if e.http_code == 400
-                request[:source_tgz] = tar
-                request.delete :sha1
-                response2 = @site['runs'].post request
-            else
-                fail e
-            end
+        request.delete :source_tgz
+        response1 = @site['runs'].post request
+    rescue RestClient::RequestFailed => e
+        if e.http_code == 400
+            request[:source_tgz] = tar
+            request.delete :sha1
+            response2 = @site['runs'].post request
+        else
+            fail e
         end
     end
 
@@ -189,7 +182,9 @@ class Runner < Rest
         end
         shasum = `shasum #{tarname}`.split()[0]
         file = File.new gzname
-        return [file, shasum]
+        yield file, shasum 
+    ensure
+        FileUtils.remove_entry @tmp
     end
 
     protected
@@ -245,7 +240,7 @@ class Scheduler < Runner
     end
 
 end
-add_command("schedule", 'Schedule a run command to happen in the future or periodically.', Scheduler)
+add_command("schedule", 'Schedule a run command to happen in the future or periodically.', Scheduler, 'cron')
 
 class Status < Rest
     def run!
@@ -259,7 +254,7 @@ class Status < Rest
         end
     end
 end
-add_command("status", 'Get the status of a command running now or scheduled later.', Status)
+add_command("status", 'Get the status of a command running now or scheduled later.', Status, 'ls')
 
 class Stop < Rest
     def self.specific_args
