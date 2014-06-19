@@ -3,10 +3,12 @@
 ## libraries
 # stdlib
 require 'tmpdir'
-# external
+# gems
 require 'commander/import'
 require 'highline/import'
 require 'rest_client'
+# this project
+require_relative '../lib/yarddog-conf'
 
 API_VERSION=1
 
@@ -16,6 +18,7 @@ program :description, 'CLI for Yarddog, a utility to manage docker containers in
 always_trace!
 #never_trace! unless $DEBUG
 ENV['PAGER'] = 'cat' # disable paging
+default_command :help # display help when no command is given
 
 # automate commander config
 def add_command name, desc, cls, *aliases
@@ -31,33 +34,6 @@ def add_command name, desc, cls, *aliases
     name.match /-/ do |match|
         alias_command name.sub(/-/, ' ').to_sym, name.to_sym
     end
-end
-
-class YarddogConf
-
-    def parse_home_file
-        path = "#{ENV['HOME']}/.yarddog.conf" if ENV['HOME']
-        if File.exists?(path)
-            parse_file File.new path
-        end
-    end
-
-    def parse_file file
-        if File.directory?(file)
-            file = File.join(file, '.yarddog.conf')
-        end
-        return unless File.exists?(file)
-        File.new(file).each do |line| line.match /(url = |token = )(.*)/ do |match|
-            if match[1] == 'url = '
-                @url = match[2]
-            elsif match[1] == 'token = '
-                @token = match[2]
-            end
-        end end
-    end
-
-    attr_reader :url, :token
-
 end
 
 class Rest
@@ -81,10 +57,9 @@ class Rest
     def initialize args, options
         @args = args
         @options = options
-        @conf = YarddogConf.new
-        @conf.parse_home_file
-        @conf.parse_file Dir.getwd
-        @token = @conf.token
+        @ini = YarddogConf.new.parse_home_file.parse_file(Dir.getwd)
+        @conf = @ini['Client']
+        @token = @conf['token']
         resolve_url
         @site = RestClient::Resource.new(@url)
     end
@@ -102,8 +77,8 @@ class Rest
             @url = @options.url
         elsif ENV["YARDDOG_URL"] && !ENV["YARDDOG_URL"].empty?
             @url = ENV["YARDDOG_URL"]
-        elsif @conf.url
-            @url = @conf.url
+        elsif @conf['url']
+            @url = @conf['url']
         else
             warn "Using the default URL #{DEFAULT_URL}." 
             @url = DEFAULT_URL
@@ -138,7 +113,8 @@ class Runner < Rest
     def initialize args, options
         super args, options
         @dir = resolve_dir File.new(options.dir || Dir.getwd)
-        @conf.parse_file @dir # Runner has additional information to share with conf, the -d option
+        @ini.parse_file @dir # Runner has additional information to share with conf, the -d option
+        @conf = @ini['Client']
     end
 
     def run!
@@ -187,18 +163,18 @@ class Runner < Rest
         FileUtils.remove_entry @tmp
     end
 
+    # might want to add a check here if the file is actually a Dockerfile and not just named that.
     protected
     def resolve_dir file
         if File.directory?(file)
             if (file = (File.join(file, 'Dockerfile'))) && File.exist?(file)
-                return file
+                return File.dirname(file)
             else
                 fail "The directory specified (#{file}) does not have a Dockerfile"
             end
         elsif File.file?(file)
             if File.basename(file) == 'Dockerfile' 
-                # might want to add a check here if the file is actually a Dockerfile and not just named that.
-                return File.dirname(file)
+                return file
             else
                 fail 'You did not specify a valid Dockerfile'
             end
