@@ -31,7 +31,7 @@ def add_command name, desc, cls, *aliases
     aliases.each do |a|
         alias_command a.to_sym, name.to_sym
     end
-    name.match /-/ do |match|
+    name.match /-/ do
         alias_command name.sub(/-/, ' ').to_sym, name.to_sym
     end
 end
@@ -67,7 +67,13 @@ class Rest
     protected
     def check_token
         unless @token
-            fail "No token found. Please create one and put at least your API token on a line beginning with ‘token = ’ in your config file"
+            fail <<MESSAGE
+No token found. Create a config file (.yarddog.conf) and place it in your home directory.
+Here's an example to get you started. Yours should look something like this:
+
+[Client]
+token = YOUR_TOKEN_HERE
+MESSAGE
         end
     end
 
@@ -75,12 +81,12 @@ class Rest
     def resolve_url
         if @options.url
             @url = @options.url
-        elsif ENV["YARDDOG_URL"] && !ENV["YARDDOG_URL"].empty?
-            @url = ENV["YARDDOG_URL"]
+        elsif ENV['YARDDOG_URL'] && !ENV['YARDDOG_URL'].empty?
+            @url = ENV['YARDDOG_URL']
         elsif @conf['url']
             @url = @conf['url']
         else
-            warn "Using the default URL #{DEFAULT_URL}." 
+            warn "Using the default URL ‘#{DEFAULT_URL}’."
             @url = DEFAULT_URL
         end
         @url += '/' unless @url.end_with? '/'
@@ -156,9 +162,9 @@ class Runner < Rest
         unless system "gzip -nk #{tarname}"
             fail "Could not gzip ‘#{tarname}’ into ‘#{gzname}’: child exited with status #{$?}"
         end
-        shasum = `shasum #{tarname}`.split()[0]
+        shasum = `shasum #{tarname}`.split.first
         file = File.new gzname
-        yield file, shasum 
+        yield file, shasum
     ensure
         FileUtils.remove_entry @tmp
     end
@@ -173,24 +179,28 @@ class Runner < Rest
                 fail "The directory specified (#{file}) does not have a Dockerfile"
             end
         elsif File.file?(file)
-            if File.basename(file) == 'Dockerfile' 
+            if File.basename(file) == 'Dockerfile'
                 return file
             else
                 fail 'You did not specify a valid Dockerfile'
             end
         else
-            fail "Invalid file (#{file})"
+            fail "Invalid file ‘#{file}’"
         end
     end
 
 end
-add_command("run", 'Build a docker image and run <command> on the cluster.', Runner)
+add_command('run', 'Build a docker image and run <command> on the cluster.', Runner)
 
 class Scheduler < Runner
 
     def self.specific_options c
         super c
-        c.option '-c', '--cron "cronjob string"', String, 'use cron syntax to specify a schedule for the command. This option is required. IMPORTANT: Make sure your cron string is "enquoted", otherwise the shell may expand special characters and the <command [args...]> will be incorrect.'
+        c.option '-c', '--cron "cronjob string"', String, 'use cron syntax '   \
+        'to specify a schedule for the command. This option is required. '     \
+        'IMPORTANT: Make sure your cron string is "enquoted", otherwise '      \
+        'the shell may expand special characters and the <command [args...]> ' \
+        'will be incorrect.'
     end
 
     def self.specific_syntax
@@ -216,7 +226,7 @@ class Scheduler < Runner
     end
 
 end
-add_command("schedule", 'Schedule a run command to happen in the future or periodically.', Scheduler, 'cron')
+add_command('schedule', 'Schedule a run command to happen in the future or periodically.', Scheduler, 'cron')
 
 class Status < Rest
     def run!
@@ -230,7 +240,7 @@ class Status < Rest
         end
     end
 end
-add_command("status", 'Get the status of a command running now or scheduled later.', Status, 'ls')
+add_command('status', 'Get the status of a command running now or scheduled later.', Status, 'ls')
 
 class Stop < Rest
     def self.specific_args
@@ -243,7 +253,7 @@ class Stop < Rest
         puts response.to_s
     end
 end
-add_command("stop", 'Attempt to stop a running command by its <jobid>', Stop)
+add_command('stop', 'Attempt to stop a running command by its <jobid>', Stop)
 
 class User_info < Rest
     def self.specific_args
@@ -255,10 +265,10 @@ class User_info < Rest
         puts response.to_s
     end
 end
-add_command("user-info", 'List information about a user specified by <user ID>', User_info, "info", "user")
+add_command('user-info', 'List information about a user specified by <user ID>', User_info, 'info', 'user')
 
 class Create_user < Rest
-    def self.specific_args 
+    def self.specific_args
         '<email>'
     end
     def run!
@@ -267,7 +277,7 @@ class Create_user < Rest
         puts response.to_s
     end
 end
-add_command("create-user", 'Create a user specified by <email>', Create_user, "create")
+add_command('create-user', 'Create a user specified by <email>', Create_user, 'create')
 
 class Delete_user < Rest
     def self.specific_args
@@ -279,4 +289,4 @@ class Delete_user < Rest
         puts response.to_s
     end
 end
-add_command("delete-user", 'Delete a user specified by <user ID>', Delete_user, "delete")
+add_command('delete-user', 'Delete a user specified by <user ID>', Delete_user, 'delete')
