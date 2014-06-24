@@ -38,11 +38,20 @@ class EC2Instance
             key: "Name",
             value: "#{BREEDS[rand(BREEDS.size)]} [yarddog]",
         })
+        @server.wait_for { ready? }
+        @addr = @server.private_ip_address
     end
 
     # of the form 'i-{hex string}'
     def connect_to id
         @server = @compute.servers.get id
+        @addr = @server.private_ip_address
     end
-    
+
+    def connected?
+        return false if @server.nil? || !@server.ready?
+        RestClient.get "#{@addr}:#{PORT}/test" rescue return false
+        true
+    end
+
 end
