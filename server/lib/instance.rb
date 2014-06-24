@@ -15,11 +15,11 @@ class EC2Instance
         if compute
             @compute = compute
         else
-            @compute = Fog::Compute.new {
-                provider: 'AWS'
-                aws_access_key_id: @conf['aws_key']
-                aws_secret_access_key: @conf['aws_secret_key']
-            }
+            @compute = Fog::Compute.new({
+                provider: 'AWS',
+                aws_access_key_id: @conf['aws_key'],
+                aws_secret_access_key: @conf['aws_secret_key'],
+            })
         end
     end
     attr_reader :compute
