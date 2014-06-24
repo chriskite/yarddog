@@ -6,6 +6,8 @@ class YarddogConf
             path = "#{ENV['HOME']}/.yarddog.conf" 
             if File.exists?(path)
                 parse_file path
+            else
+                warn 'No home file found.'
             end
         end
         return self
@@ -28,12 +30,9 @@ class YarddogConf
     # example usage:
     # conf = YarddogConf.new.parse_home_file
     # conf['Server']['aws_key']
-    def method_missing attempted_method, *args
-        (@ini.respond_to? attempted_method) ? @ini.send(attempted_method, *args) : super
-    end
-
-    def respond_to_missing?
-        @ini.respond_to? || super
+    def [] section
+        fail 'No file found.' unless @ini
+        @ini[section]
     end
 
 end
