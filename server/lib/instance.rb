@@ -5,12 +5,14 @@ require_relative '../../lib/yarddog-conf'
 IMAGE = 'ami-018c9568' # Ubuntu 14.04 64-bit
 SUBNET = 'subnet-5e4f4236' # 10.42.3.x/24, us-east-1a
 SECURITY_GROUP_IDS = ['sg-7440961b', 'sg-b3a4c4d6']
-BREEDS = ["beagle", "laborador", "terrier", "bulldog", "chihuahua", "shepherd", "hound", "spaniel", "retriever", "schnauzer", "shiba", "pinscher", "mastiff", "collie"]
+BREEDS = %w(beagle laborador terrier bulldog chihuahua shepherd hound spaniel retriever schnauzer shiba pinscher mastiff collie)
+PORT = 60086
 
 class EC2Instance
+    attr_reader :compute, :server
 
     # requires valid instance of Fog::Compute
-    def initialize compute
+    def initialize compute=nil
         @conf = YarddogConf.new.parse_home_file['Server']
         if compute
             @compute = compute
@@ -22,7 +24,6 @@ class EC2Instance
             })
         end
     end
-    attr_reader :compute
 
     def spin_up type="t1.micro"
         @server = @compute.servers.create({
