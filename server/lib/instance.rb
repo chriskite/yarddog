@@ -2,7 +2,7 @@ require 'fog'
 require 'base64'
 require_relative '../../lib/yarddog-conf'
 
-IMAGE = 'ami-018c9568' # Ubuntu 14.04 64-bit
+IMAGE = 'ami-d4bd46bc' # yarddog-base
 SUBNET = 'subnet-5e4f4236' # 10.42.3.x/24, us-east-1a
 SECURITY_GROUP_IDS = ['sg-7440961b', 'sg-b3a4c4d6']
 BREEDS = %w(beagle laborador terrier bulldog chihuahua shepherd hound spaniel retriever schnauzer shiba pinscher mastiff collie)
