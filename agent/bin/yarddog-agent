@@ -1,0 +1,36 @@
+#!/usr/bin/env ruby
+require 'socket'
+require 'sinatra'
+require 'docker'
+
+PORT = 60086
+set :port, PORT
+DIR = '/home/yarddog/workspace'
+
+Dir.mkdir DIR unless Dir.exists? DIR
+Dir.chdir DIR
+
+images = Docker::Image.all
+
+get '/test' do
+    'This is a test. Seeing this message means ' \
+    'the client is able to communicate with the server.'
+end
+
+get '/shutdown' do
+    system 'shutdown now'
+end
+
+# initiator of the request should have already placed the .tar.gz in the directory
+# POST over HTTPS might be better
+get '/images/new/:name' do
+    response = nil
+    File.open params[:name] do |file|
+        system "tar -xz -f '#{file}'"
+        FileUtils.remove_entry(file)
+        dir = File.basename(file, ".tgz")
+        response = Docker::Image.build_from_dir(dir)
+        FileUtils.remove_entry(dir)
+    end
+    response.inspect
+end
