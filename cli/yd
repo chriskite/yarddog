@@ -255,7 +255,7 @@ class Stop < Rest
 end
 add_command('stop', 'Attempt to stop a running command by its <jobid>', Stop)
 
-class User_info < Rest
+class UserInfo < Rest
     def self.specific_args
         '<user ID>'
     end
@@ -265,9 +265,9 @@ class User_info < Rest
         puts response.to_s
     end
 end
-add_command('user-info', 'List information about a user specified by <user ID>', User_info, 'info', 'user')
+add_command('user-info', 'List information about a user specified by <user ID>', UserInfo, 'info', 'user')
 
-class Create_user < Rest
+class CreateUser < Rest
     def self.specific_args
         '<email>'
     end
@@ -277,9 +277,9 @@ class Create_user < Rest
         puts response.to_s
     end
 end
-add_command('create-user', 'Create a user specified by <email>', Create_user, 'create')
+add_command('create-user', 'Create a user specified by <email>', CreateUser, 'create')
 
-class Delete_user < Rest
+class DeleteUser < Rest
     def self.specific_args
         '<user ID>'
     end
@@ -289,4 +289,4 @@ class Delete_user < Rest
         puts response.to_s
     end
 end
-add_command('delete-user', 'Delete a user specified by <user ID>', Delete_user, 'delete')
+add_command('delete-user', 'Delete a user specified by <user ID>', DeleteUser, 'delete')
