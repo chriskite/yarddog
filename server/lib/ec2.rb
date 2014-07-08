@@ -7,8 +7,10 @@ class EC2
     SUBNET = 'subnet-5e4f4236' # 10.42.3.0/24, us-east-1a
     YARDDOG_GROUP = 'sg-b3a4c4d6' # vpc-yarddog-test
     SSH_GROUP = 'sg-7440961b' # vpc-ssh
-    SECURITY_GROUP_IDS = ['sg-b3a4c4d6', 'sg-7440961b']
-    BREEDS = %w(beagle laborador terrier bulldog chihuahua shepherd hound spaniel retriever schnauzer shiba pinscher mastiff collie)
+    SECURITY_GROUP_IDS = [YARDDOG_GROUP, SSH_GROUP]
+    BREEDS = %w(beagle laborador terrier bulldog chihuahua
+    shepherd hound spaniel retriever schnauzer shiba pinscher
+    mastiff collie)
     PORT = 60086
 
     attr_reader :compute

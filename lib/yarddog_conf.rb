@@ -3,7 +3,7 @@ class YarddogConf
 
     def parse_home_file
         if ENV['HOME']
-            path = "#{ENV['HOME']}/.yarddog.conf" 
+            path = "#{ENV['HOME']}/.yarddog.conf"
             if File.exists?(path)
                 parse_file path
             else
