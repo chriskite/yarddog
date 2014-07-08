@@ -2,6 +2,7 @@
 require 'socket'
 require 'sinatra'
 require 'docker'
+require 'tmpdir'
 
 PORT = 60086
 set :port, PORT
@@ -11,6 +12,7 @@ DIR = '/home/yarddog/workspace'
 Dir.mkdir DIR unless Dir.exists? DIR
 Dir.chdir DIR
 
+Docker.validate_version!
 images = Docker::Image.all
 
 get '/test' do
@@ -18,20 +20,23 @@ get '/test' do
     'the client is able to communicate with the server.'
 end
 
-get '/shutdown' do
-    system 'shutdown now'
-end
-
-# initiator of the request should have already placed the .tar.gz in the directory
-# POST over HTTPS might be better
-get '/images/new/:name' do
-    response = nil
-    File.open params[:name] do |file|
-        system "tar -xz -f '#{file}'"
-        FileUtils.remove_entry(file)
-        dir = File.basename(file, ".tgz")
-        response = Docker::Image.build_from_dir(dir)
-        FileUtils.remove_entry(dir)
+# File upload
+post '/images' do
+    tempfile = params[:file][:tempfile]
+    filename = params[:file][:filename]
+    Dir.mktmpdir do |tempdir|
+        STDOUT.puts tempdir
+        unless system "tar -xz -f '#{tempfile.path}' -C '#{tempdir}'"
+            return 500
+        end
+        # if the archive is entirely within one directory,
+        # build the image there
+        d = Dir.new(tempdir)
+        e = d.entries - ['.','..']
+        if e.size == 1 && File.directory?(e.first)
+            d = Dir.new(e.first)
+        end
+        image = Docker::Image.build_from_dir(d)
     end
-    response.inspect
+    "Created image #{image[:id]}."
 end

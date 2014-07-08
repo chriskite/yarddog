@@ -72,8 +72,30 @@ class EC2
         end
     end
 
-    private
+    def generate_name
+        used_names = []
+        @yd_servers.each do |s|
+            name = s.tags["Name"].split.first
+            used_names << name if used_names.include? name
+        end
+        unused_names = BREEDS - used_names
+        unused_names[rand(unused_names.size)]
+    end
+
+    # This is the script that will be started by root as soon as the machine
+    # is ready. Within it is the yarddog-agent file that is in the project
+    # directory, therefore it will be consistent with this version of the
+    # project. It will be executed as the yarddog user in the background.
+    #private
     def generate_script
-        # TODO
+        return <<SCRIPT
+#!/bin/sh
+cat \x3c\x3c'EC2_EOF' > /home/yarddog/yarddog-agent
+#{File.read(File.expand_path('../../../agent/bin/yarddog-agent', __FILE__))}
+EC2_EOF
+chown yarddog:users /home/yarddog/yarddog-agent
+chmod +x /home/yarddog/yarddog-agent
+sudo -u yarddog -i -b /home/yarddog/yarddog-agent
+SCRIPT
     end
 end
