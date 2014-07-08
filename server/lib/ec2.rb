@@ -31,6 +31,10 @@ class EC2
         # weird with the Fog::Compute::AWS::Server class.
         # It doesn't exist before we call Fog::Compute#new.
         require_relative './instance.rb'
+        Fog.credentials = Fog.credentials.merge({
+            :private_key_path => File.expand_path(@conf['private_key_path']),
+            :public_key_path => File.expand_path(@conf['public_key_path']),
+        })
         find
     end
 
