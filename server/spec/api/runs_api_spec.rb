@@ -11,7 +11,7 @@ describe 'Runs API' do
 
   describe "DELETE /runs/:id" do
     it "should delete the specified run from the database"
-    
+
     context "when the run is in progress" do
       it "should attempt to kill the run"
     end
@@ -50,7 +50,7 @@ describe 'Runs API' do
           expect(db_run.instance_type).to eq(instance_type)
         end
       end
-      
+
       context "and no source exists with that sha1" do
         it "should return a 400 error" do
           api_post "runs", {sha1: "foo", instance_type: instance_type, token: @user.api_key.token}

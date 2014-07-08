@@ -1,6 +1,6 @@
 class Source < ActiveRecord::Base
   has_attached_file :tgz
-  validates_attachment :tgz, presence: true, 
+  validates_attachment :tgz, presence: true,
                              content_type: {
                                content_type: "application/x-compressed"
                              },

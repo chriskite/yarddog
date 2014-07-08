@@ -14,7 +14,7 @@ module YardDog
     def run
       loop do
         resp = @server.request_task(agent_id)
-        
+
         # if told to shut down, exit
         break if "shutdown" == resp
 

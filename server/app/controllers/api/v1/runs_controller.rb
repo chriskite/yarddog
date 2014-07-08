@@ -2,13 +2,13 @@ module Api
   module V1
     class RunsController < ApplicationController
       before_filter :restrict_access
-      
+
       #
       # GET /runs
       # Return all in-progress runs
       #
       def index
-      
+
       end
 
       #

@@ -8,7 +8,7 @@ module Api
       end
 
       def create
-        @user = User.create(user_params) 
+        @user = User.create(user_params)
         unless @user.valid?
           render json: {error: "Could not create user"}, status: :bad_request
           return
@@ -23,7 +23,7 @@ module Api
       end
 
       private
-      
+
       def user_params
         params.permit(:email)
       end
