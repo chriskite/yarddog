@@ -12,6 +12,7 @@ class EC2
     shepherd hound spaniel retriever schnauzer shiba pinscher
     mastiff collie)
     PORT = 60086
+    RATE_LIMIT = 60 #seconds
 
     attr_reader :compute
 
@@ -35,10 +36,16 @@ class EC2
             :private_key_path => File.expand_path(@conf['private_key_path']),
             :public_key_path => File.expand_path(@conf['public_key_path']),
         })
-        find
     end
 
     def spin_up type="t1.micro"
+        if last - Time.now < RATE_LIMIT
+          warn 'You are spinning servers up too fast. '        \
+            'To avoid abuse from infinite loops, yarddog '     \
+            'does not spin up servers faster than once every ' \
+            "#{RATE_LIMIT} second#{RATE_LIMIT == 1 && '' || 's'}."
+        end
+        @last = Time.now
         server = @compute.servers.create({
             flavor_id: type,
             security_group_ids: SECURITY_GROUP_IDS,
