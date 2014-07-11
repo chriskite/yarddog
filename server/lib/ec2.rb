@@ -57,7 +57,7 @@ class EC2
         @compute.tags.create({
             resource_id: server.identity,
             key: "Name",
-            value: "#{BREEDS[rand(BREEDS.size)]} [yarddog]",
+            value: generate_name,
         })
         server.wait_for { ready? }
         @yd_servers << server
@@ -86,11 +86,7 @@ class EC2
     end
 
     def generate_name
-        used_names = []
-        @yd_servers.each do |s|
-            name = s.tags["Name"].split.first
-            used_names << name if used_names.include? name
-        end
+        used_names = @yd_servers.map{|s|s.tags["Name"].split.first}
         unused_names = BREEDS - used_names
         unused_names[rand(unused_names.size)]
     end
