@@ -8,7 +8,7 @@ require 'commander/import'
 require 'highline/import'
 require 'rest_client'
 # this project
-require_relative '../lib/yarddog-conf'
+require_relative '../lib/yarddog_conf'
 
 API_VERSION=1
 
