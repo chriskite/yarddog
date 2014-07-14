@@ -36,9 +36,12 @@ class EC2
             :private_key_path => File.expand_path(@conf['private_key_path']),
             :public_key_path => File.expand_path(@conf['public_key_path']),
         })
+        @last = Time.new 0 # beginning of epoch
+        @yd_servers = []
     end
 
-    def spin_up type="t1.micro"
+    def spin_up type=nil
+        type = "t1.micro" if type.nil?
         if Time.now - @last < RATE_LIMIT
           warn 'You are spinning servers up too fast. '        \
             'To avoid abuse from infinite loops, yarddog '     \
@@ -60,30 +63,29 @@ class EC2
             key: "Name",
             value: generate_name,
         })
-        server.wait_for { ready? }
         @yd_servers << server
         return server
+    rescue => e
+        server.destroy if server
+        raise e
     end
 
-    def find
+    # it is the user's responsibility to ‘find’ whenever a change
+    # happens outside of this class
+    def all
         @yd_servers = @compute.servers.all(
             'instance.group-id' => YARDDOG_GROUP
         )
     end
 
     # of the form 'i-{hex string}'
-    def connect_to id
+    def find id
         server = @compute.servers.get id
+        return nil unless server
         if server.groups.include? YARDDOG_GROUP
             @yd_servers << server
         end
         return server
-    end
-
-    def check_all
-        @yd_servers.select do |server|
-            server.connected?
-        end
     end
 
     def generate_name
