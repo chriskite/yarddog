@@ -39,11 +39,12 @@ class EC2
     end
 
     def spin_up type="t1.micro"
-        if last - Time.now < RATE_LIMIT
+        if Time.now - @last < RATE_LIMIT
           warn 'You are spinning servers up too fast. '        \
             'To avoid abuse from infinite loops, yarddog '     \
             'does not spin up servers faster than once every ' \
             "#{RATE_LIMIT} second#{RATE_LIMIT == 1 && '' || 's'}."
+          return false
         end
         @last = Time.now
         server = @compute.servers.create({
