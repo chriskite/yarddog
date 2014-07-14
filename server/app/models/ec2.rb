@@ -1,6 +1,6 @@
 require 'fog'
 require 'base64'
-require_relative '../../lib/yarddog_conf'
+require_relative '../../../lib/yarddog_conf'
 
 class EC2
     IMAGE = 'ami-0ca56064' # yarddog-base
@@ -17,30 +17,25 @@ class EC2
     attr_reader :compute
 
     # requires valid instance of Fog::Compute
-    def initialize compute=nil
-        @conf = YarddogConf.new.parse_home_file['Server']
-        if compute
-            @compute = compute
-        else
-            @compute = Fog::Compute.new({
-                provider: 'AWS',
-                aws_access_key_id: @conf['aws_key'],
-                aws_secret_access_key: @conf['aws_secret_key'],
-            })
-        end
-        # The require has to be here because Fog does something
-        # weird with the Fog::Compute::AWS::Server class.
-        # It doesn't exist before we call Fog::Compute#new.
-        require_relative './instance.rb'
-        Fog.credentials = Fog.credentials.merge({
-            :private_key_path => File.expand_path(@conf['private_key_path']),
-            :public_key_path => File.expand_path(@conf['public_key_path']),
-        })
-        @last = Time.new 0 # beginning of epoch
-        @yd_servers = []
-    end
+    # initialization
+    @conf = YarddogConf.new.parse_home_file['Server']
+    @compute = Fog::Compute.new({
+        provider: 'AWS',
+        aws_access_key_id: @conf['aws_key'],
+        aws_secret_access_key: @conf['aws_secret_key'],
+    })
+    # The require has to be here because Fog does something
+    # weird with the Fog::Compute::AWS::Server class.
+    # It doesn't exist before we call Fog::Compute#new.
+    require_relative './instance.rb'
+    Fog.credentials = Fog.credentials.merge({
+        :private_key_path => File.expand_path(@conf['private_key_path']),
+        :public_key_path => File.expand_path(@conf['public_key_path']),
+    })
+    @last = Time.new 0 # beginning of epoch
+    @yd_servers = []
 
-    def spin_up type=nil
+    def self.create type=nil
         type = "t1.micro" if type.nil?
         if Time.now - @last < RATE_LIMIT
           warn 'You are spinning servers up too fast. '        \
@@ -72,14 +67,14 @@ class EC2
 
     # it is the user's responsibility to ‘find’ whenever a change
     # happens outside of this class
-    def all
+    def self.all
         @yd_servers = @compute.servers.all(
             'instance.group-id' => YARDDOG_GROUP
         )
     end
 
     # of the form 'i-{hex string}'
-    def find id
+    def self.find id
         server = @compute.servers.get id
         return nil unless server
         if server.groups.include? YARDDOG_GROUP
@@ -88,7 +83,7 @@ class EC2
         return server
     end
 
-    def generate_name
+    def self.generate_name
         used_names = @yd_servers.map{|s|s.tags["Name"].split.first}
         unused_names = BREEDS - used_names
         unused_names[rand(unused_names.size)]
@@ -99,15 +94,16 @@ class EC2
     # directory, therefore it will be consistent with this version of the
     # project. It will be executed as the yarddog user in the background.
     #private
-    def generate_script
+    def self.generate_script
         return <<SCRIPT
 #!/bin/sh
 cat \x3c\x3c'EC2_EOF' > /home/yarddog/yarddog-agent
-#{File.read(File.expand_path('../../../agent/bin/yarddog-agent', __FILE__))}
+#{File.read(File.expand_path('../../../../agent/bin/yarddog-agent', __FILE__))}
 EC2_EOF
 chown yarddog:users /home/yarddog/yarddog-agent
 chmod +x /home/yarddog/yarddog-agent
 sudo -u yarddog -i -b /home/yarddog/yarddog-agent
 SCRIPT
     end
+
 end
