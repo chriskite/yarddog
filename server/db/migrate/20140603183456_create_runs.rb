@@ -4,6 +4,7 @@ class CreateRuns < ActiveRecord::Migration
       t.references :source, index: true
       t.references :user, index: true
       t.string :instance_type
+      t.string :instance_id
 
       t.timestamps
     end
