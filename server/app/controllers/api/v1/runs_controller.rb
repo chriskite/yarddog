@@ -28,7 +28,7 @@ module Api
       def create
         if source_params[:sha1]
           # if the request contains a sha1 hash of a source tgz,
-          # attempt to fin the matching source object in the db.
+          # attempt to find the matching source object in the db.
           # if that fails, return an error.
           @source = Source.where(sha1: source_params[:sha1]).first
           if @source.nil?
