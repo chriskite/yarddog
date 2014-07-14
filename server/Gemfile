@@ -4,6 +4,10 @@ gem 'rails', '4.1.1'
 gem 'rails-api'
 gem 'jbuilder'
 gem 'paperclip', '4.1'
+gem 'fog', '~> 1.22.1'
+gem 'inifile', '~> 2.0.2'
+gem 'rest-client', '~> 1.6.7'
+gem 'commander', '~> 4.2.0'
 
 group :development, :test do
   gem 'spring'
