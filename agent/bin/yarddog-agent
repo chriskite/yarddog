@@ -31,10 +31,10 @@ post '/images' do
         end
         # if the archive is entirely within one directory,
         # build the image there
-        d = Dir.new(tempdir)
-        e = d.entries - ['.','..']
-        if e.size == 1 && File.directory?(e.first)
-            d = Dir.new(e.first)
+        d = tempdir
+        e = Dir.entries(tempdir) - ['.','..']
+        if e.size == 1 && (f = File.expand_path(e.first,d)) && File.directory?(f)
+            d = f
         end
         image = Docker::Image.build_from_dir(d)
     end
