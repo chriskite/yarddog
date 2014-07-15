@@ -16,6 +16,8 @@ group :development, :test do
   gem 'fakeweb'
   gem 'timecop'
   gem 'database_cleaner'
+  gem 'map_by_method'
+  gem 'what_methods'
 end
 
 gem 'pg'

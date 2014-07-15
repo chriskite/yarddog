@@ -76,6 +76,7 @@ GEM
     mail (2.5.4)
       mime-types (~> 1.16)
       treetop (~> 1.4.8)
+    map_by_method (0.8.3)
     mime-types (1.25.1)
     mini_portile (0.6.0)
     minitest (5.3.4)
@@ -151,6 +152,7 @@ GEM
       polyglot (>= 0.3.1)
     tzinfo (1.2.1)
       thread_safe (~> 0.1)
+    what_methods (1.0.1)
 
 PLATFORMS
   ruby
@@ -163,6 +165,7 @@ DEPENDENCIES
   fog (~> 1.22.1)
   inifile (~> 2.0.2)
   jbuilder
+  map_by_method
   paperclip (= 4.1)
   pg
   rails (= 4.1.1)
@@ -171,3 +174,4 @@ DEPENDENCIES
   rspec-rails
   spring
   timecop
+  what_methods
