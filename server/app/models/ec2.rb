@@ -56,7 +56,7 @@ class EC2
         @compute.tags.create({
             resource_id: server.identity,
             key: "Name",
-            value: generate_name,
+            value: "#{generate_name} [yarddog]",
         })
         @yd_servers << server
         return server
@@ -65,8 +65,6 @@ class EC2
         raise e
     end
 
-    # it is the user's responsibility to ‘find’ whenever a change
-    # happens outside of this class
     def self.all
         @yd_servers = @compute.servers.all(
             'instance.group-id' => YARDDOG_GROUP

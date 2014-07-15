@@ -3,13 +3,14 @@ class Run < ActiveRecord::Base
   belongs_to :user
 
   # for now, simply make a new instance; here would be the assignment logic
-  after_create def assign
+  before_save def assign
     if EC2.all.empty?
-      server = EC2.create @instance_type
+      server = EC2.create self.instance_type
     else
       server = EC2.all.first
     end
-    @instance_id = server.id
+    self.instance_id = server.id
+    #TODO upload image to server
   end
 
 end
