@@ -3,14 +3,16 @@ class Run < ActiveRecord::Base
   belongs_to :user
 
   # for now, simply make a new instance; here would be the assignment logic
-  before_save def assign
+  before_save :assign, unless: Proc.new { source.nil? }
+
+  def assign
     if EC2.all.empty?
-      server = EC2.create self.instance_type
+      server = EC2.create instance_type
     else
       server = EC2.all.first
     end
-    self.instance_id = server.id
-    #TODO upload image to server
+    instance_id = server.id
+    server.upload_image source.tgz.path
   end
 
 end
