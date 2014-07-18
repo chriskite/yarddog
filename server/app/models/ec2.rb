@@ -4,7 +4,7 @@ require_relative '../../../lib/yarddog_conf'
 
 class EC2
     IMAGE = 'ami-0ca56064' # yarddog-base
-    SUBNET = 'subnet-5e4f4236' # 10.42.3.0/24, us-east-1a
+    SUBNET = 'subnet-244f424c' # 10.42.4.0/24, us-east-1a, internet-connected
     YARDDOG_GROUP = 'sg-b3a4c4d6' # vpc-yarddog-test
     SSH_GROUP = 'sg-7440961b' # vpc-ssh
     SECURITY_GROUP_IDS = [YARDDOG_GROUP, SSH_GROUP]
