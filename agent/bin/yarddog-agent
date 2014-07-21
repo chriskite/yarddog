@@ -24,6 +24,8 @@ end
 post '/images' do
     tempfile = params[:file][:tempfile]
     filename = params[:file][:filename]
+    image = nil
+    cont  = nil
     Dir.mktmpdir do |tempdir|
         STDOUT.puts tempdir
         unless system "tar -xz -f '#{tempfile.path}' -C '#{tempdir}'"
@@ -37,6 +39,9 @@ post '/images' do
             d = f
         end
         image = Docker::Image.build_from_dir(d)
+        # TODO launch container with specified commands
+        cont  = Docker::Container.create('Image' => image.id)
+        cont.start
     end
-    "Created image #{image[:id]}."
+    cont.id
 end
