@@ -127,7 +127,7 @@ class Runner < Rest
         check_token
         make_tar do |tar, sha|
             request = {sha1: sha, token: @token, source_tgz: tar}
-            request[:type] = @options.type if @options.type
+            request[:instance_type] = @options.type if @options.type
             request[:args] = @args unless @args.empty?
             puts request.inspect
             send! request
