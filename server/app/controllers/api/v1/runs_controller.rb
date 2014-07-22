@@ -37,13 +37,11 @@ module Api
           end
         else
           # make a new source object with the uploaded tgz
-          @source = Source.create(tgz: source_params[:source_tgz])
+          @source = Source.create!(tgz: source_params[:source_tgz])
         end
 
-        @run = Run.create(run_params)
-        @run.source = @source
-        @run.user = @current_user
-        @run.save
+        @run = Run.create!(run_params.merge(source: @source, user: @current_user))
+        #@run = Run.delay.create!(run_params.merge(source: @source, user: @current_user))
 
         render @run
       end
