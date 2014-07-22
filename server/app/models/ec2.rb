@@ -42,7 +42,7 @@ class EC2
             'To avoid abuse from infinite loops, yarddog '     \
             'does not spin up servers faster than once every ' \
             "#{RATE_LIMIT} second#{RATE_LIMIT == 1 && '' || 's'}."
-          return false
+          return nil
         end
         @last = Time.now
         server = @compute.servers.create({
@@ -58,6 +58,7 @@ class EC2
             key: "Name",
             value: "#{generate_name} [yarddog]",
         })
+        server.wait_for { connected? }
         @yd_servers << server
         return server
     rescue => e
@@ -66,6 +67,7 @@ class EC2
     end
 
     def self.all
+        # filter so that we won't interfere with the other servers
         @yd_servers = @compute.servers.all(
             'instance.group-id' => YARDDOG_GROUP
         )
@@ -95,12 +97,12 @@ class EC2
     def self.generate_script
         return <<SCRIPT
 #!/bin/sh
-cat \x3c\x3c'EC2_EOF' > /home/yarddog/yarddog-agent
+cat \x3c\x3c'EC2_EOF' > /home/yarddog/yarddog_agent
 #{File.read(File.expand_path('../../../../agent/bin/yarddog-agent', __FILE__))}
 EC2_EOF
-chown yarddog:users /home/yarddog/yarddog-agent
-chmod +x /home/yarddog/yarddog-agent
-sudo -u yarddog -i -b /home/yarddog/yarddog-agent
+chown yarddog:users /home/yarddog/yarddog_agent
+chmod +x /home/yarddog/yarddog_agent
+sudo -u yarddog -i -b /home/yarddog/yarddog_agent
 SCRIPT
     end
 
