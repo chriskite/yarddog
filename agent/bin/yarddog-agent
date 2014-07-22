@@ -27,7 +27,6 @@ post '/images' do
     image = nil
     cont  = nil
     Dir.mktmpdir do |tempdir|
-        STDOUT.puts tempdir
         unless system "tar -xz -f '#{tempfile.path}' -C '#{tempdir}'"
             return 500
         end
