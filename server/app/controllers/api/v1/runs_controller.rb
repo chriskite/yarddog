@@ -40,8 +40,9 @@ module Api
           @source = Source.create!(tgz: source_params[:source_tgz])
         end
 
-        #@run = Run.create!(run_params.merge(source: @source, user: @current_user))
-        @run = Run.delay.create!(run_params.merge(source: @source, user: @current_user))
+        # run_params is a ActionController::Parameters, which gets serialized strangely by delayed_job. 
+        # Fix is to turn it into a plain hash with .to_h, which works.
+        @run = Run.delay.create!(run_params.merge(source: @source, user: @current_user).to_h)
       end
 
       #
