@@ -3,7 +3,7 @@ require 'base64'
 require_relative '../../../lib/yarddog_conf'
 
 class EC2
-    IMAGE = 'ami-0ca56064' # yarddog-base
+    IMAGE = 'ami-065c956e' # yarddog-base
     SUBNET = 'subnet-244f424c' # 10.42.4.0/24, us-east-1a, internet-connected
     YARDDOG_GROUP = 'sg-b3a4c4d6' # vpc-yarddog-test
     SSH_GROUP = 'sg-7440961b' # vpc-ssh
@@ -97,12 +97,12 @@ class EC2
     def self.generate_script
         return <<SCRIPT
 #!/bin/sh
-cat \x3c\x3c'EC2_EOF' > /home/yarddog/yarddog_agent
+cat \x3c\x3c'EC2_EOF' > /home/yarddog/yarddog-agent
 #{File.read(File.expand_path('../../../../agent/bin/yarddog-agent', __FILE__))}
 EC2_EOF
-chown yarddog:users /home/yarddog/yarddog_agent
-chmod +x /home/yarddog/yarddog_agent
-sudo -u yarddog -i -b /home/yarddog/yarddog_agent
+chown yarddog:users /home/yarddog/yarddog-agent
+chmod +x /home/yarddog/yarddog-agent
+sudo -u yarddog -i -b /home/yarddog/yarddog-agent
 SCRIPT
     end
 
