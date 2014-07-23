@@ -40,10 +40,8 @@ module Api
           @source = Source.create!(tgz: source_params[:source_tgz])
         end
 
-        @run = Run.create!(run_params.merge(source: @source, user: @current_user))
-        #@run = Run.delay.create!(run_params.merge(source: @source, user: @current_user))
-
-        render @run
+        #@run = Run.create!(run_params.merge(source: @source, user: @current_user))
+        @run = Run.delay.create!(run_params.merge(source: @source, user: @current_user))
       end
 
       #
