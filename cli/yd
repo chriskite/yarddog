@@ -90,6 +90,7 @@ MESSAGE
             @url = DEFAULT_URL
         end
         @url += '/' unless @url.end_with? '/'
+        @url += 'api/v#{API_VERSION}/' unless @url.end_with 'api/v#{API_VERSION}/'
         validator = %r|api/v#{API_VERSION}/$|
         unless @url =~ validator
             fail "Improper API Version or invalid URL. You provided ‘#{@url}’ but the required API version is v#{API_VERSION}"
