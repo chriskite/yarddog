@@ -95,10 +95,12 @@ class EC2
     # project. It will be executed as the yarddog user in the background.
     #private
     def self.generate_script
+        file = File.read(File.expand_path('../../../../agent/bin/yarddog-agent', __FILE__))
+        file.sub!(/^URL = .*$/, "URL = '#{@conf['url']}'") if @conf['url']
         return <<SCRIPT
 #!/bin/sh
 cat \x3c\x3c'EC2_EOF' > /home/yarddog/yarddog-agent
-#{File.read(File.expand_path('../../../../agent/bin/yarddog-agent', __FILE__))}
+#{file}
 EC2_EOF
 chown yarddog:users /home/yarddog/yarddog-agent
 chmod +x /home/yarddog/yarddog-agent

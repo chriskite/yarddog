@@ -8,6 +8,7 @@ PORT = 60086
 set :port, PORT
 set :bind, '0.0.0.0'
 DIR = '/home/yarddog/workspace'
+URL = 'http://localhost:3000'
 
 Dir.mkdir DIR unless Dir.exists? DIR
 Dir.chdir DIR
