@@ -16,7 +16,11 @@ class Run < ActiveRecord::Base
 
   before_destroy :remote_destroy
   def remote_destroy
-    EC2.find(instance_id).kill(container_id, image_id)
+    @server.kill(container_id, image_id)
+  end
+
+  def check_status
+    @server.container_up? container_id
   end
 
 end
