@@ -9,6 +9,7 @@ class Source < ActiveRecord::Base
                              },
                              size: { in: 0..20.megabytes }
 
+  has_attached_file :image
   has_many :runs
   before_save :create_sha1
 
@@ -17,4 +18,8 @@ class Source < ActiveRecord::Base
   def create_sha1
     self.sha1 = Digest::SHA1.file(tgz.queued_for_write[:original].path).hexdigest
   end
+
+  def build
+  end
+
 end
