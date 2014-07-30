@@ -1,5 +1,6 @@
 require 'fog'
 require 'rest-client'
+require 'json'
 
 DIR = '/home/yarddog/workspace'
 AGENT_PORT  = 60086
@@ -21,7 +22,10 @@ class Fog::Compute::AWS::Server
         docker["images/#{image}"].delete
     end
 
-    private
+    def container_up? container
+        !JSON.parse(docker["containers/#{container}/json"]).empty?
+    end
+
     # abstractions for connection, which fail automatically
 
     def agent
