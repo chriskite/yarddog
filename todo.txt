@@ -1,0 +1,8 @@
+Remote kill / Load balancing
+build on server, send to agent
+Cronjob spec scheduling
+Better error reporting
+Viewing logs
+Viewing status, load, disk usage, etc.
+Email notifications on completion
+Github integration?
