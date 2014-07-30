@@ -39,10 +39,11 @@ module Api
           # make a new source object with the uploaded tgz
           @source = Source.create!(tgz: source_params[:source_tgz])
         end
-
-        # run_params is a ActionController::Parameters, which gets serialized strangely by delayed_job. 
-        # Fix is to turn it into a plain hash with .to_h, which works.
-        @run = Run.delay.create!(run_params.merge(source: @source, user: @current_user).to_h)
+        # TODO build source
+        # run_params is a ActionController::Parameters, which gets serialized
+        # strangely by delayed_job. Fix is to turn it into a plain hash.
+        @run = Run.delay.create!(run_params.to_h.merge(source: @source, user: @current_user))
+        # TODO render a response string
       end
 
       #
@@ -50,7 +51,9 @@ module Api
       # Attempt to kill and then delete run specified by +id+
       #
       def destroy
-
+        Run.find(params[:id]).destroy
+        # TODO give message to user
+        # TODO decide if to shutdown machine
       end
 
       private
