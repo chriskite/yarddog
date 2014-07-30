@@ -97,6 +97,7 @@ class EC2
     def self.generate_script
         file = File.read(File.expand_path('../../../../agent/bin/yarddog-agent', __FILE__))
         file.sub!(/^URL = .*$/, "URL = '#{@conf['url']}'") if @conf['url']
+        # \x3c is the < character because otherwise ruby would think you're doing another heredoc
         return <<SCRIPT
 #!/bin/sh
 cat \x3c\x3c'EC2_EOF' > /home/yarddog/yarddog-agent
