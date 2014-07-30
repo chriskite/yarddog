@@ -3,6 +3,7 @@ require 'socket'
 require 'sinatra'
 require 'docker'
 require 'tmpdir'
+require 'rest-client'
 
 PORT = 60086
 set :port, PORT
@@ -40,8 +41,23 @@ post '/images' do
         end
         image = Docker::Image.build_from_dir(d)
         # TODO launch container with specified commands
-        cont  = Docker::Container.create('Image' => image.id)
+        cont = Docker::Container.create('Image' => image.id)
+        @last = cont.id
         cont.start
     end
     cont.id
+end
+
+Thread.new do
+    current = []
+    delay = 5
+    loop do
+        sleep delay
+        last = current
+        current = Docker::Container.all(since: @last)
+        old = last - current
+        old.each do |deleted_container|
+            RestClient.delete "#{URL}/runs/#{deleted_container.id}"
+        end
+    end
 end
