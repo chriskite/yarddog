@@ -3,8 +3,10 @@ class Run < ActiveRecord::Base
   belongs_to :user
 
   # for now, simply make a new instance; here would be the assignment logic
-  after_create :remote_assign, unless: Proc.new { source.nil? || user.nil? }
   def remote_assign
+    raise "No user" if user.nil?
+    raise "No source" if source.nil?
+
     if EC2.all.empty?
       server = EC2.create instance_type
     else

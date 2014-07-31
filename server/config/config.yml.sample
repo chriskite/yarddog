@@ -1,0 +1,10 @@
+defaults: &DEFAULTS
+
+development:
+  <<: *DEFAULTS
+
+test:
+  <<: *DEFAULTS
+
+production:
+  <<: *DEFAULTS

@@ -1,13 +1,7 @@
 require 'fog'
 require 'base64'
-require_relative '../../../lib/yarddog_conf'
 
 class EC2
-  IMAGE = 'ami-065c956e' # yarddog-base
-  SUBNET = 'subnet-244f424c' # 10.42.4.0/24, us-east-1a, internet-connected
-  YARDDOG_GROUP = 'sg-b3a4c4d6' # vpc-yarddog-test
-  SSH_GROUP = 'sg-7440961b' # vpc-ssh
-  SECURITY_GROUP_IDS = [YARDDOG_GROUP, SSH_GROUP]
   BREEDS = %w(beagle laborador terrier bulldog chihuahua
   shepherd hound spaniel retriever schnauzer shiba pinscher
   mastiff collie)
@@ -18,19 +12,18 @@ class EC2
 
   # requires valid instance of Fog::Compute
   # initialization
-  @conf = YarddogConf.new.parse_home_file['Server']
   @compute = Fog::Compute.new({
     provider: 'AWS',
-    aws_access_key_id: @conf['aws_key'],
-    aws_secret_access_key: @conf['aws_secret_key'],
+    aws_access_key_id: APP_CONFIG['aws_key'],
+    aws_secret_access_key: APP_CONFIG['aws_secret_key'],
   })
   # The require has to be here because Fog does something
   # weird with the Fog::Compute::AWS::Server class.
   # It doesn't exist before we call Fog::Compute#new.
   require_relative './instance.rb'
   Fog.credentials = Fog.credentials.merge({
-    :private_key_path => File.expand_path(@conf['private_key_path']),
-    :public_key_path => File.expand_path(@conf['public_key_path']),
+    :private_key_path => File.expand_path(APP_CONFIG['private_key_path']),
+    :public_key_path => File.expand_path(APP_CONFIG['public_key_path']),
   })
   @last = Time.new 0 # beginning of epoch
   @yd_servers = []
@@ -47,9 +40,9 @@ class EC2
     @last = Time.now
     server = @compute.servers.create({
       flavor_id: type,
-      security_group_ids: SECURITY_GROUP_IDS,
-      image_id: IMAGE,
-      subnet_id: SUBNET,
+      security_group_ids: APP_CONFIG['security_group_ids'],
+      image_id: APP_CONFIG['ami_id'],
+      subnet_id: APP_CONFIG['subnet_id'],
       key_name: 'yarddog',
       user_data: generate_script,
     })
@@ -95,8 +88,7 @@ class EC2
   # project. It will be executed as the yarddog user in the background.
   #private
   def self.generate_script
-    file = File.read(File.expand_path('../../../../agent/bin/yarddog-agent', __FILE__))
-    file.sub!(/^URL = .*$/, "URL = '#{@conf['url']}'") if @conf['url']
+    file = File.read(Rails.root.join('..', 'agent', 'bin', 'yarddog-agent'))
     # \x3c is the < character because otherwise ruby would think you're doing another heredoc
     return <<SCRIPT
 #!/bin/sh
