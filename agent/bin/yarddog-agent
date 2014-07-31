@@ -17,31 +17,31 @@ Docker.validate_version!
 images = Docker::Image.all
 
 get '/test' do
-    'This is a test. Seeing this message means ' \
-    'the client is able to communicate with the server.'
+  'This is a test. Seeing this message means ' \
+  'the client is able to communicate with the server.'
 end
 
 # File upload
 post '/images' do
-    tempfile = params[:file][:tempfile]
-    filename = params[:file][:filename]
-    image = nil
-    cont  = nil
-    Dir.mktmpdir do |tempdir|
-        unless system "tar -xz -f '#{tempfile.path}' -C '#{tempdir}'"
-            return 500
-        end
-        # if the archive is entirely within one directory,
-        # build the image there
-        d = tempdir
-        e = Dir.entries(tempdir) - ['.','..']
-        if e.size == 1 && (f = File.expand_path(e.first,d)) && File.directory?(f)
-            d = f
-        end
-        image = Docker::Image.build_from_dir(d)
-        # TODO launch container with specified commands
-        cont  = Docker::Container.create('Image' => image.id)
-        cont.start
+  tempfile = params[:file][:tempfile]
+  filename = params[:file][:filename]
+  image = nil
+  cont  = nil
+  Dir.mktmpdir do |tempdir|
+    unless system "tar -xz -f '#{tempfile.path}' -C '#{tempdir}'"
+      return 500
     end
-    cont.id
+    # if the archive is entirely within one directory,
+    # build the image there
+    d = tempdir
+    e = Dir.entries(tempdir) - ['.','..']
+    if e.size == 1 && (f = File.expand_path(e.first,d)) && File.directory?(f)
+      d = f
+    end
+    image = Docker::Image.build_from_dir(d)
+    # TODO launch container with specified commands
+    cont  = Docker::Container.create('Image' => image.id)
+    cont.start
+  end
+  cont.id
 end
