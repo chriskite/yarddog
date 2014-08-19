@@ -35,12 +35,32 @@ module Api
             render json: {error: "No source with matching sha1"}, status: :bad_request
             return
           end
+        elsif source_params[:git_url]
+          # try to find an existing source with this git url
+          @source = Source.where(git_url: source_params[:git_url]).first
+
+          begin
+            # if the git url wasn't already in a source, make a new one
+            @source ||= Source.create!(git_url: source_params[:git_url])  
+          rescue
+            render json: {error: "Invalid Git Url"}, status: :bad_request
+            return
+          end
         else
           # make a new source object with the uploaded tgz
           @source = Source.create!(tgz: source_params[:source_tgz])
         end
+
         # TODO build source
-        @run = Run.create!(run_params.merge(source: @source, user: @current_user))
+
+        # attempt to create the run, and return any error to the client
+        begin
+          @run = Run.create!(run_params.merge(source: @source, user: @current_user))
+        rescue
+          render json: {error: $!.message}, status: :bad_request
+          return
+        end
+
         @run.delay.remote_assign
         render @run
       end
@@ -62,7 +82,7 @@ module Api
       end
 
       def source_params
-        params.permit(:sha1, :source_tgz)
+        params.permit(:sha1, :source_tgz, :git_url)
       end
 
     end

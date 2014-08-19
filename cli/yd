@@ -105,12 +105,13 @@ class Runner < Rest
 
   def self.specific_options c
     super c
+    c.option '-g', '--git git@github.com', String, 'specify a git url for a Dockerfile to run'
     c.option '-d', '--dir ./Dockerfile', String, 'specify the directory with a Dockerfile at its root.'
     c.option '-t', '--type c3.xlarge', String, 'specify the type of instance on which the command should be run'
   end
 
   def self.specific_syntax
-    super + ' [-d directory/Dockerfile] [-t instance_type]'
+    super + ' [-d directory/Dockerfile] [-g git_url] [-t instance_type]'
   end
 
   def self.specific_args
@@ -126,13 +127,23 @@ class Runner < Rest
 
   def run!
     check_token
-    make_tar do |tar, sha|
-      request = {sha1: sha, token: @token, source_tgz: tar}
-      request[:instance_type] = @options.type if @options.type
-      request[:args] = @args unless @args.empty?
-      puts request.inspect
-      send! request
+    request = {token: @token}
+    request[:instance_type] = @options.type if @options.type
+    request[:args] = @args unless @args.empty?
+
+    if options.git
+      # send the git repo url
+      request[:git_url] = options.git
+    else
+      # make a tgz and send it
+      make_tar do |tar, sha|
+        request[:sha1] = sha
+        request[:source_tgz] = tar
+      end
     end
+
+    puts request.inspect
+    send! request
   end
 
   protected

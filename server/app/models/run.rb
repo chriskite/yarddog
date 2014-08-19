@@ -13,7 +13,7 @@ class Run < ActiveRecord::Base
       server = EC2.all.first
     end
     instance_id = server.id
-    image_id = server.upload_image source.tgz.path
+    image_id = server.upload_image source.fresh_tgz_path
   end
 
   before_destroy :remote_destroy

@@ -82,6 +82,26 @@ describe 'Runs API' do
         expect(File.read(new_source.tgz.path)).to eq(File.read(Rails.root.join('spec', 'fixtures', SPEC_SOURCE_FILE)))
       end
     end
+
+    context "when a git url is provided" do
+      context "when the git url is valid" do
+        it "should create a new source with the git url" do
+          git_url = "git@github.com:chriskite/yarddog.git"
+          api_post "runs", {git_url: git_url, instance_type: instance_type, token: @user.api_key.token}
+          expect(response.status).to eq(200)
+          expect(Run.last.source.git_url).to eq(git_url)
+        end
+      end
+
+      context "when the git url is invalid" do
+        it "should return an error" do
+          git_url = "www.google.com"
+          api_post "runs", {git_url: git_url, instance_type: instance_type, token: @user.api_key.token}
+          expect(response.status).to eq(400)
+        end
+      end
+    end
+
   end
 
 end
