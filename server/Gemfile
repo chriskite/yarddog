@@ -9,6 +9,7 @@ gem 'inifile', '~> 2.0.2'
 gem 'rest-client', '~> 1.6.7'
 gem 'commander', '~> 4.2.0'
 gem 'delayed_job_active_record'
+gem 'fileutils'
 
 group :development, :test do
   gem 'spring'
